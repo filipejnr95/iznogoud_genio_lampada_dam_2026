@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iznogoud e o Génio da Lâmpada</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: white; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
+        canvas { background-color: white; border: 4px solid black; }
+        #nomeInput { position: absolute; display: none; font-family: Georgia, sans-serif; font-weight: bold; font-size: 21px; color: black; text-align: center; background: transparent; border: none; outline: none; padding: 7px; text-transform: capitalize; }
+        #creditosDiv, #ajudaDiv, #lideresDiv { position: absolute; display: none; font-family: Georgia, sans-serif; font-size: 11px; color: black; text-align: center; overflow-y: auto; padding-right: 5px; scrollbar-width: thin; scrollbar-color: rgba(0, 0, 0, 0.5) transparent; }
+        #ajudaDiv { font-size: 14px; line-height: 1.4; padding-left: 15px; box-sizing: border-box;}
+        .img-tecla { height: 20px; vertical-align: middle; margin-left: 5px; margin-bottom: 2px; }
+        .img-moeda { height: 20px; vertical-align: middle; margin-left: 5px; margin-bottom: 2px; }
+        .img-tamara { height: 20px; vertical-align: middle; margin-left: 5px; margin-bottom: 2px; }
+        #lideresDiv table { width: 100%; border-collapse: collapse; margin-left: -10px; margin-top: 10px; width: calc(100% + 5px);}
+        #lideresDiv th { border-bottom: 2px solid black; padding-bottom: 5px; }
+        #lideresDiv td { padding: 5px 0; border-bottom: 1px dotted rgba(0, 0, 0, 0.3); text-align: center; }
+        #creditosDiv::-webkit-scrollbar, #ajudaDiv::-webkit-scrollbar, #lideresDiv::-webkit-scrollbar { width: 6px; }
+        #creditosDiv::-webkit-scrollbar-track, #ajudaDiv::-webkit-scrollbar-track, #lideresDiv::-webkit-scrollbar-track { background: transparent; }
+        #creditosDiv::-webkit-scrollbar-thumb, #ajudaDiv::-webkit-scrollbar-thumb, #lideresDiv::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, 0.4); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <input type="text" id="nomeInput" maxlength="12" autocomplete="off">
+    <div id="creditosDiv">
+        <strong>ESEC - CDM <br> UC Desenv. de Aplicações Multimédia</strong><br>
+        <i>Jogo "Iznogoud e o Génio da Lâmpada"</i><br><br>
+        <strong>Desenvolvimento e Programação:</strong><br> Filipe Ribeiro (com assistência IA Gemini)<br><br>
+        <strong>Arte e Universo:</strong><br> Iznogoud (René Goscinny e Jean Tabary)<br><br>
+        <strong>Música Ambiente:</strong><br> "Arabic-Obsession"<br><br>
+        <strong>Agradecimentos:</strong><br> Professor Ricardo Rodrigues<br><br>
+        <strong>Ano Letivo 2025/2026</strong>
+    </div>
+    <div id="ajudaDiv">
+        <p>O Iznogoud quer encontrar um génio que o ajude a concretizar o seu desejo: <br><b>"Ser Califa em vez do Califa"</b></p>
+        <strong>Controlos:</strong><br><br>
+        <strong>Nível 1</strong><br>
+        Esquerda <img src="imgs/btn_left.png" class="img-tecla"><br>
+        Direita <img src="imgs/btn_right.png" class="img-tecla"><br>
+        Saltar <img src="imgs/btn_space.png" class="img-tecla"><br><br>
+        <strong>Nível 2</strong><br>
+        Esquerda <img src="imgs/btn_left.png" class="img-tecla"><br>
+        Direita <img src="imgs/btn_right.png" class="img-tecla"><br>
+        Lançar <img src="imgs/btn_space.png" class="img-tecla"><br><br>
+        <strong>Nível 3</strong><br>
+        Clicar <img src="imgs/btn_space.png" class="img-tecla"><br><br> 
+        <strong>Vidas e Pontuação:</strong><br><br>
+        <strong>Nivel 1 e 2</strong> <br>
+        Máx. 3 <img src="imgs/tamara.png" class="img-tamara"> <br>
+        Colectar <img src="imgs/moeda.png" class="img-moeda">: +1 cada<br>
+        Eliminar Inimigos: +5 <img src="imgs/moeda.png" class="img-moeda"> cada<br><br>
+        <strong>Nivel 3</strong> <br>
+        Pressionar <img src="imgs/btn_space.png" class="img-tecla"> no centro da barra.<br>
+        <p>Para o Génio aparecer, tens de acertar 3 vezes no centro da barra de precisão. Se falhares 3 vezes, perdes o jogo! Quantos menos erros cometeres, maior será a tua recompensa em moedas.</p> <br>
+        0 Erros (Perfeito)  +15 <img src="imgs/moeda.png" class="img-moeda"><br>
+        1 Erro  +10 <img src="imgs/moeda.png" class="img-moeda"><br>
+        2 Erros +5 <img src="imgs/moeda.png" class="img-moeda"><br>
+        3 Erros Game Over (0 <img src="imgs/moeda.png" class="img-moeda">)<br>
+         
+        <p><i>Entra nesta aventura, apanha mais moedas e chega primeiro que os teus amigos! Completa o jogo para entrares na tabela de líderes! E que seja desta que 'Iz' seja bem sucedido... Ou não!</i></p>
+    </div>
+    <div id="lideresDiv"></div>
+    <canvas id="gameCanvas" width="718" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const inputHTML = document.getElementById('nomeInput');
+        const creditosHTML = document.getElementById('creditosDiv');
+        const ajudaHTML = document.getElementById('ajudaDiv');
+        const lideresHTML = document.getElementById('lideresDiv');
+
+        // Formatar o nome do jogador em tempo real (Sem espaços, sem pontuação, primeira maiúscula)
+        inputHTML.addEventListener('input', function() {
+            let valor = this.value.replace(/[^a-zA-Z0-9À-ÿçÇ\s]/g, '');
+            if (valor.length > 0) {
+                valor = valor.charAt(0).toUpperCase() + valor.slice(1); 
+            }
+            this.value = valor;
+        });
+
+        const GAME_WIDTH = canvas.width;
+        const GAME_HEIGHT = canvas.height;
+
+        let gameState = "MENU";
+        let targetGameState = "MENU";
+
+        // --- Variáveis de Transição Global ---
+        let isTransitioning = false;
+        let transitionAlpha = 0;
+        let transitionPhase = 0; 
+        let nomeJogadorGlobal = "";
+        let isNovoRecorde = false; 
+
+        // --- Configuração de Áudio ---
+        let musicaOn = true, efeitosOn = true;
+        const bgMusic = new Audio("som/arabic-obsession.mp3"); bgMusic.loop = true;
+        bgMusic.volume = 0.1;
+        let interacaoInicial = false;
+
+        // Efeitos Sonoros
+        const sndCoin = new Audio("som/coin.mp3");
+        const sndInimigo = new Audio("som/grito_inimigo.mp3");
+        const sndJump = new Audio("som/jump.mp3");
+        const sndLose = new Audio("som/lose.mp3");
+        const sndTamara = new Audio("som/tamara.mp3");
+        const sndVitoria = new Audio("som/vitoria.mp3");
+        const sndHit = new Audio("som/hit1.mp3");
+
+        // NOVOS SONS NÍVEL 2
+        const sndRato = new Audio("som/rato.mp3");
+        const sndSnake = new Audio("som/snake.m4A");
+        const sndRessonar = new Audio("som/ressonar.mp3");
+        const sndFumo = new Audio("som/fumo.M4A");
+        const sndBolaMagica = new Audio("som/bola_magica.M4A");
+        const sndGritoQueda = new Audio("som/grito_queda.mp3");
+        const sndSomQueda = new Audio("som/som_queda.mp3");
+
+        // SONS DE CORRIDA
+        const sndGalope = new Audio("som/galope.mp3"); sndGalope.loop = true; sndGalope.volume = 0.6;
+        const sndCorrer = new Audio("som/correr.mp3"); sndCorrer.loop = true; sndCorrer.volume = 0.6;
+
+        // NOVOS SONS NÍVEL 3
+        const sndRessonarN3 = new Audio("som/ressonar.mp3"); sndRessonarN3.loop = true; sndRessonarN3.volume = 0.5;
+        const sndGenioSair = new Audio("som/genio_sair.mp3");
+        const sndEsfregar = new Audio("som/esfregar.mp3"); sndEsfregar.loop = true; sndEsfregar.volume = 0.6;
+        const sndCerto = new Audio("som/certo.mp3");
+        const sndErrado = new Audio("som/errado.mp3");
+        const sndSapo = new Audio("som/sapo.mp3");
+        const sndCaliphFrog = new Audio("som/The_Caliph_frog.mp3");
+
+        let somInimigoAtivo = null; // Variável de controlo para parar o som do inimigo a tocar
+
+        // Função de som clonado (permite sons sobrepostos como várias moedas de uma vez)
+        function tocarSom(som, vol = 0.6) {
+            if (efeitosOn && som) {
+                let s = som.cloneNode();
+                s.volume = vol;
+                s.play().catch(e => console.log("Áudio bloqueado: " + e));
+            }
+        }
+
+        // Função para gerir sons em loop contínuo (corrida, esfregar, etc)
+        function updateRunningSound(snd, shouldPlay) {
+            if (!efeitosOn) shouldPlay = false;
+            if (shouldPlay) {
+                if (snd.paused) {
+                    let p = snd.play();
+                    if (p !== undefined) {
+                        p.catch(e => {}); 
+                    }
+                }
+            } else {
+                if (!snd.paused) {
+                    snd.pause();
+                }
+            }
+        }
+
+        // --- Rato ---
+        let mouseX = 0, mouseY = 0;
+        canvas.addEventListener('mousemove', function (event) {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = event.clientX - rect.left; mouseY = event.clientY - rect.top;
+        });
+
+        // --- Variáveis Globais das Placas ---
+        let definicoesAbertas = false, pX = 0, pY = 0, pW = 0, pH = 0;
+        let creditosAbertos = false, cX = 0, cY = 0, cW = 0, cH = 0;
+        let lideresAbertos = false, lX = 0, lY = 0, lW = 0, lH = 0;
+        let ajudaAberta = false, aX = 0, aY = 0, aW = 0, aH = 0;
+        let nomeAberto = false, nX = 0, nY = 0, nW = 0, nH = 0;
+
+        let btnAudioW = 60, btnAudioH = 60, posMusicaX = 0, posMusicaY = 0, posEfeitosX = 0, posEfeitosY = 0;
+        let btnJogarPequenoHover = false, jpX = 0, jpY = 0, jpW = 0, jpH = 0;
+
+        let vidas = 3;
+        let moedas = 0;
+        let tempoInicio = 0;
+        let tempoDecorrido = 0;
+        let tempoAcumulado = 0; 
+        const chaoY = GAME_HEIGHT - 30;
+
+        const imgTamara = new Image(); imgTamara.src = "imgs/tamara.png";
+        const imgMoeda = new Image(); imgMoeda.src = "imgs/moeda.png";
+
+        let invulneravel = false;
+        let timerInvulneravel = 0;
+
+        let isPaused = false;
+        let isGameOver = false;
+        let showGameOverUI = false;
+        let gameOverTimer = 0;
+        let tempoPausaStart = 0;
+        let nivel1Completo = false;
+        
+        // --- Nível 2 Fim ---
+        let nivel2Completo = false;
+        let n2FimTimer = 0;
+        let showNivel2FimUI = false;
+
+        const imgBtnPausa = new Image(); imgBtnPausa.src = "imgs/btn_pausa.png";
+        const imgBtnExit = new Image(); imgBtnExit.src = "imgs/btn_exit.png";
+        const imgBtnRight = new Image(); imgBtnRight.src = "imgs/btn_right.png";
+        const imgBtnSpace = new Image(); imgBtnSpace.src = "imgs/btn_space.png"; 
+        
+        const placaPausa = new Image(); placaPausa.src = "imgs/placa_pausa.png";
+        const placaGeral = new Image(); placaGeral.src = "imgs/placa_geral.png";
+
+        let btnPausaW = 40, btnPausaH = 40;
+        let btnPausaX = GAME_WIDTH - btnPausaW - 15, btnPausaY = 10;
+        let btnPausaHover = false, btnExitHover = false, btnNextHover = false;
+
+        let placaPausaLoaded = false;
+        let ppX = 0, ppY = 0, ppW = 0, ppH = 0;
+        let pPosMusicaX = 0, pPosMusicaY = 0, pPosEfeitosX = 0, pPosEfeitosY = 0, pPosExitX = 0, pPosExitY = 0;
+
+        let placaGeralLoaded = false;
+        let pgX = 0, pgY = 0, pgW = 0, pgH = 0;
+        let pgPosExitX = 0, pgPosExitY = 0;
+
+        let btnExitW = 80, btnExitH = 60;
+        let pgBtnExitW = 60, pgBtnExitH = 45;
+
+        // ==========================================
+        // ANIMAÇÃO CUTSCENE (VARIÁVEIS DE BOTÕES)
+        // ==========================================
+        let btnSkipW = 40, btnSkipH = 40;
+        let btnSkipX = GAME_WIDTH - btnSkipW - 20;
+        let btnSkipY = GAME_HEIGHT - btnSkipH - 20;
+        let btnSkipHover = false;
+
+        let btnSpaceSkipW = btnSkipH * (438 / 146);
+        let btnSpaceSkipH = btnSkipH;
+        let btnSpaceSkipX = btnSkipX - btnSpaceSkipW - 10;
+        let btnSpaceSkipY = btnSkipY;
+        let btnSpaceSkipHover = false;
+
+        // ==========================================
+        // ANIMAÇÃO CUTSCENE 1
+        // ==========================================
+        const bgCorredor = new Image(); bgCorredor.src = "imgs/cenario_corredor.jpg";
+        const imgIzCalado = new Image(); imgIzCalado.src = "imgs/iz_calado.png";
+        const imgIzFala1 = new Image(); imgIzFala1.src = "imgs/fala_iz.png";
+        const imgIzFala2 = new Image(); imgIzFala2.src = "imgs/fala_iz2.png";
+        const imgLaratCalado = new Image(); imgLaratCalado.src = "imgs/larat_calado.png";
+        const imgLaratFala1 = new Image(); imgLaratFala1.src = "imgs/fala_larat.png";
+        const imgLaratFala2 = new Image(); imgLaratFala2.src = "imgs/fala_larat2.png";
+
+        let talkAnimationFrame = 0;
+        let talkAnimationTimer = 0;
+        const talkAnimationSpeed = 150;
+
+        const dialogos1 = [
+            { orador: "IZ", texto: "Tenho de encontrar aquele génio..." },
+            { orador: "LARAT", texto: "Mas, ó Mestre, o Califa é Soberano!" },
+            { orador: "IZ", texto: "Cala-te, Larat! Quero ser Califa em vez do Califa!" },
+            { orador: "LARAT", texto: "Como desejar, oh mestre..." }
+        ];
+        let indexDialogo = 0;
+
+        // ==========================================
+        // ANIMAÇÃO CUTSCENE 2
+        // ==========================================
+        const imgCut1 = new Image(); imgCut1.src = "imgs/cut1.jpg";
+        const imgCut2 = new Image(); imgCut2.src = "imgs/cut2.jpg";
+        let cutscene2Index = 0;
+        
+        // ==========================================
+        // ANIMAÇÃO CUTSCENE 3 (ZOOM DA CORRIDA)
+        // ==========================================
+        const imgCameloSo = new Image(); imgCameloSo.src = "imgs/camelo_so.png";
+        let cutscene3IzX = 0;
+        let cutscene3CameloX = 0;
+        let cutscene3FrameIz = 0;
+        let cutscene3FrameCamelo = 0;
+        let cutscene3Timer = 0;
+        let cutscene3IzFinished = false; 
+        let cutscene3DelayTimer = 0;     
+
+        // ==========================================
+        // VARIÁVEIS DO NÍVEL 2
+        // ==========================================
+        const N2_FLOOR_Y = 328; 
+
+        const bgNivel2 = new Image(); bgNivel2.src = "imgs/cenario2.jpg"; 
+        const imgIzQueda = new Image(); imgIzQueda.src = "imgs/n2_iz_queda.png";
+        const imgIzChao = new Image(); imgIzChao.src = "imgs/n2_iz_chao.png";
+        const imgIzEsfregar = new Image(); imgIzEsfregar.src = "imgs/Iz_esfregar_lamp.png";
+        const imgIzLancar = new Image(); imgIzLancar.src = "imgs/n2_iz_lancar.png";
+        const imgBolaMagica = new Image(); imgBolaMagica.src = "imgs/bola_magica.png";
+        const imgIzCorrer = new Image(); imgIzCorrer.src = "imgs/n2_iz_correr.png"; 
+
+        const imgCobra = new Image(); imgCobra.src = "imgs/cobra.png";
+        const imgRato = new Image(); imgRato.src = "imgs/rato.png";
+        const imgEsqueleto = new Image(); imgEsqueleto.src = "imgs/guarda_esqueleto.png";
+        const imgPuff = new Image(); imgPuff.src = "imgs/puff.png";
+
+        let n2InimigosIniciais = [
+            { tipo: 'rato', x: 2600, y: N2_FLOOR_Y - 40, w: 86, h: 71, velX: -2.0, minX: 2450, maxX: 2750, viradoParaEsquerda: true, frameAtual: 0, tempoFrame: 0, velAnim: 6, estado: "VIVO", somTocado: false },
+            { tipo: 'cobra', x: 2000, y: N2_FLOOR_Y - 50, w: 112, h: 50, velX: 1.5, minX: 1850, maxX: 2150, viradoParaEsquerda: false, frameAtual: 0, tempoFrame: 0, velAnim: 8, estado: "VIVO", somTocado: false },
+            { tipo: 'rato', x: 1300, y: N2_FLOOR_Y - 40, w: 86, h: 71, velX: -2.0, minX: 1150, maxX: 1450, viradoParaEsquerda: true, frameAtual: 0, tempoFrame: 0, velAnim: 6, estado: "VIVO", somTocado: false },
+            { tipo: 'cobra', x: 800, y: N2_FLOOR_Y - 50, w: 112, h: 50, velX: 1.5, minX: 650, maxX: 950, viradoParaEsquerda: false, frameAtual: 0, tempoFrame: 0, velAnim: 8, estado: "VIVO", somTocado: false },
+            { tipo: 'esqueleto', x: 250, y: N2_FLOOR_Y - 100, w: 90, h: 104, velX: 0, minX: 250, maxX: 250, viradoParaEsquerda: false, frameAtual: 0, tempoFrame: 0, velAnim: 10, estado: "VIVO", somTocado: false }
+        ];
+        let n2Inimigos = [];
+
+        let n2MoedasIniciais = [
+            { x: 500, y: N2_FLOOR_Y - 60, w: 30, h: 30 }, { x: 550, y: N2_FLOOR_Y - 60, w: 30, h: 30 },
+            { x: 1000, y: N2_FLOOR_Y - 60, w: 30, h: 30 }, { x: 1050, y: N2_FLOOR_Y - 60, w: 30, h: 30 },
+            { x: 1500, y: N2_FLOOR_Y - 60, w: 30, h: 30 }, { x: 1550, y: N2_FLOOR_Y - 60, w: 30, h: 30 },
+            { x: 2100, y: N2_FLOOR_Y - 60, w: 30, h: 30 }, { x: 2150, y: N2_FLOOR_Y - 60, w: 30, h: 30 },
+            { x: 2650, y: N2_FLOOR_Y - 60, w: 30, h: 30 }, { x: 2700, y: N2_FLOOR_Y - 60, w: 30, h: 30 }
+        ];
+        let n2TamarasIniciais = [
+            { x: 1200, y: N2_FLOOR_Y - 60, w: 25, h: 25 }, { x: 2300, y: N2_FLOOR_Y - 60, w: 25, h: 25 }
+        ];
+        let n2Moedas = [];
+        let n2Tamaras = [];
+
+        let n2State = "FALLING"; 
+        let n2Timer = 0;
+        let n2BgY = 0;
+        let n2BgX = 0;
+        let n2Cooldown = 0;
+        let n2LancarTimer = 0;
+        let n2Magias = [];
+        let n2ViradoEsquerda = true; 
+        let n2SomQuedaTocado = false;
+
+        // ==========================================
+        // VARIÁVEIS DO NÍVEL 3
+        // ==========================================
+        const bgNivel3 = new Image(); 
+        bgNivel3.src = "imgs/cenario3.jpg"; 
+        let bgNivel3Loaded = false;
+        bgNivel3.onload = () => bgNivel3Loaded = true;
+
+        const imgN3GenioSo = new Image(); imgN3GenioSo.src = "imgs/n3_genio_so.png";
+        const imgSapo = new Image(); imgSapo.src = "imgs/sapo.png";
+
+        let n3State = "DIALOGO"; // Pode ser: DIALOGO, JOGAR, GENIO_APARECE, GENIO_FALA, MAGIA_PUFF, SAPO_FINAL
+        let indexDialogo3 = 0;
+        const dialogos3 = [
+            { orador: "IZ", texto: "Hehehe! O Califa dorme profundamente..." },
+            { orador: "IZ", texto: "Vou esfregar esta lâmpada e o Génio vai tornar-me Califa em vez do Califa!" },
+            { orador: "IZ", texto: "Sai daí, Génio! O teu mestre ordena! Transforma o Califa num feio sapo!" }
+        ];
+
+        // Minijogo da Barra de Precisão
+        let n3CursorX = 0, n3CursorDir = 1, n3CursorSpeed = 1.5;
+        let n3Hits = 0, n3Misses = 0;
+        let n3FeedbackTimer = 0, n3FeedbackMsg = "", n3FeedbackColor = "";
+        
+        // Animações Génio e Puff
+        let n3GenioAlpha = 0; 
+        let n3PuffFrame = 0, n3PuffTimer = 0;
+
+        // Ecrã de Finalização do Nível 3
+        let nivel3Completo = false;
+        let showNivel3FimUI = false;
+
+        // Funções auxiliares
+        function getLines(ctx, text, maxWidth) {
+            var words = text.split(" "); var lines = []; var currentLine = words[0];
+            for (var i = 1; i < words.length; i++) {
+                var word = words[i]; var width = ctx.measureText(currentLine + " " + word).width;
+                if (width < maxWidth) { currentLine += " " + word; } else { lines.push(currentLine); currentLine = word; }
+            }
+            lines.push(currentLine); return lines;
+        }
+
+        function drawSpeechBubble(ctx, text, x, y, maxWidth) {
+            ctx.save(); ctx.font = "bold 17px Georgia"; ctx.textBaseline = "top";
+            const padingX = 20, padingY = 15, lineHeight = 21;
+            var lines = getLines(ctx, text, maxWidth - (padingX * 2));
+            var bubbleHeight = (lines.length * lineHeight) + (padingY * 2);
+            var boxY = y - bubbleHeight;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; ctx.strokeStyle = "black"; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.roundRect(x, boxY, maxWidth, bubbleHeight, 10); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "black"; ctx.textAlign = "left";
+            for (var i = 0; i < lines.length; i++) { ctx.fillText(lines[i], x + padingX, boxY + padingY + (i * lineHeight)); }
+            ctx.restore();
+        }
+
+        function guardarScore() {
+            let jogadoresSalvos = JSON.parse(localStorage.getItem('iznogoudLideres')) || [];
+            let hoje = new Date();
+            let dataFormatada = hoje.getDate().toString().padStart(2, '0') + "/" + (hoje.getMonth()+1).toString().padStart(2, '0') + "/" + hoje.getFullYear();
+            
+            let novoJogador = { nome: nomeJogadorGlobal, moedas: moedas, tempo: tempoAcumulado, data: dataFormatada, timestamp: Date.now() };
+            jogadoresSalvos.push(novoJogador);
+            
+            // Ordena o array e verifica se fomos para primeiro
+            jogadoresSalvos.sort((a, b) => {
+                if (b.moedas !== a.moedas) { return b.moedas - a.moedas; }
+                else if (a.tempo !== b.tempo) { return a.tempo - b.tempo; }
+                else { return (b.timestamp || 0) - (a.timestamp || 0); }
+            });
+            
+            if (jogadoresSalvos[0].timestamp === novoJogador.timestamp) {
+                isNovoRecorde = true;
+            } else {
+                isNovoRecorde = false;
+            }
+            
+            localStorage.setItem('iznogoudLideres', JSON.stringify(jogadoresSalvos));
+        }
+
+        function tentativaNivel3() {
+            if (n3FeedbackTimer > 0) return; 
+            
+            let n3BarW = 300;
+            let n3TargetW = 40;
+            let targetStart = (n3BarW / 2) - (n3TargetW / 2);
+            let targetEnd = (n3BarW / 2) + (n3TargetW / 2);
+
+            if (n3CursorX >= targetStart && n3CursorX <= targetEnd) {
+                n3Hits++;
+                n3FeedbackMsg = "ACERTOU!";
+                n3FeedbackColor = "lime";
+                n3CursorSpeed += 0.5;
+                tocarSom(sndCerto); // SOM ACERTO
+                
+                if (n3Hits >= 3) {
+                    setTimeout(() => {
+                        n3State = "GENIO_APARECE";
+                        tocarSom(sndGenioSair); // SOM GÊNIO SAIR
+                        let recompensa = 15;
+                        if (n3Misses === 1) recompensa = 10;
+                        if (n3Misses === 2) recompensa = 5;
+                        moedas += recompensa;
+                    }, 800);
+                }
+            } else {
+                n3Misses++;
+                n3FeedbackMsg = "FALHOU!";
+                n3FeedbackColor = "red";
+                tocarSom(sndErrado); // SOM ERRO
+                
+                if (n3Misses >= 3) {
+                    setTimeout(() => {
+                        isGameOver = true;
+                        showGameOverUI = true;
+                        tocarSom(sndLose);
+                    }, 800);
+                }
+            }
+            n3FeedbackTimer = 50; 
+        }
+
+        placaPausa.onload = function () {
+            placaPausaLoaded = true; ppH = GAME_HEIGHT * 0.60; ppW = placaPausa.width * (ppH / placaPausa.height);
+            ppX = (GAME_WIDTH - ppW) / 2; ppY = (GAME_HEIGHT - ppH) / 2;
+            pPosMusicaX = ppX + (ppW * 0.35) - (btnAudioW / 2); pPosEfeitosX = ppX + (ppW * 0.65) - (btnAudioW / 2);
+            pPosMusicaY = ppY + (ppH * 0.42) - (btnAudioH / 2); pPosEfeitosY = ppY + (ppH * 0.42) - (btnAudioH / 2);
+            pPosExitX = ppX + (ppW / 2) - (btnExitW / 2); pPosExitY = ppY + (ppH * 0.70) - (btnExitH / 2);
+        };
+
+        placaGeral.onload = function () {
+            placaGeralLoaded = true; pgH = GAME_HEIGHT * 0.85; pgW = placaGeral.width * (pgH / placaGeral.height);
+            pgX = (GAME_WIDTH - pgW) / 2; pgY = (GAME_HEIGHT - pgH) / 2;
+            pgPosExitX = pgX + (pgW / 2) - (pgBtnExitW / 2); pgPosExitY = pgY + (pgH * 0.75) - (pgBtnExitH / 2);
+        };
+
+        // --- LÓGICA DO NÍVEL 1 ---
+        const bgNivel1 = new Image(); bgNivel1.src = "imgs/cenario1.jpg";
+        let bgNivel1Loaded = false; bgNivel1.onload = () => bgNivel1Loaded = true;
+        let bgX = 0, limitBgX = 0;
+
+        const imgCato = new Image(); imgCato.src = "imgs/n1_cato.png";
+        let catosInitiais = [ { x: 600, y: chaoY - 100, w: 60, h: 100 }, { x: 1100, y: chaoY - 100, w: 60, h: 100 }, { x: 1600, y: chaoY - 100, w: 60, h: 100 }, { x: 2200, y: chaoY - 100, w: 60, h: 100 }, { x: 2800, y: chaoY - 100, w: 60, h: 100 }, { x: 3400, y: chaoY - 100, w: 60, h: 100 } ];
+        let catos = [];
+
+        const G_RUN_SHEET_W = 707; const G_RUN_SHEET_H = 174; const G_RUN_FRAMES = 4;
+        const G_DERROTA_W = 271; const G_DERROTA_H = 81;
+        const TARGET_G_H = 90; const TARGET_G_W = 91;
+        const TARGET_G_DERROTA_H = 40; const TARGET_G_DERROTA_W = TARGET_G_DERROTA_H * (G_DERROTA_W / G_DERROTA_H);
+
+        const imgGuarda = new Image(); imgGuarda.src = "imgs/n1_guarda.png";
+        const imgGuardaDerrota = new Image(); imgGuardaDerrota.src = "imgs/n1_guarda_derrota.png";
+        let guardasIniciais = [ 
+            { x: 800, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: 1.2, minX: 700, maxX: 1000, viradoParaEsquerda: false, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 }, 
+            { x: 1350, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: -1.2, minX: 1250, maxX: 1500, viradoParaEsquerda: true, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 }, 
+            { x: 1850, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: 1.2, minX: 1750, maxX: 2000, viradoParaEsquerda: false, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 }, 
+            { x: 2500, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: -1.2, minX: 2350, maxX: 2650, viradoParaEsquerda: true, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 }, 
+            { x: 3100, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: 1.2, minX: 2950, maxX: 3250, viradoParaEsquerda: false, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 },
+            { x: 3600, y: chaoY - TARGET_G_H, w: TARGET_G_W, h: TARGET_G_H, velX: -1.2, minX: 3450, maxX: 3750, viradoParaEsquerda: true, derrotado: false, frameAtual: 0, tempoFrame: 0, velocidadeAnimacao: 10 }
+        ];
+        let guardas = [];
+
+        const imgMoedaAnim = new Image(); imgMoedaAnim.src = "imgs/moeda_anim.png";
+        const M_ANIM_SHEET_W = 523; const M_ANIM_SHEET_H = 74; const M_ANIM_FRAMES = 6;
+        let frameMoeda = 0; let tempoFrameMoeda = 0; const velAnimMoeda = 6;
+
+        const moedaW = 30, moedaH = 30;
+        let moedasIniciais = [ { x: 400, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 450, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 700, y: chaoY - 120, w: moedaW, h: moedaH }, { x: 750, y: chaoY - 140, w: moedaW, h: moedaH }, { x: 900, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 950, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 1400, y: chaoY - 160, w: moedaW, h: moedaH }, { x: 1450, y: chaoY - 180, w: moedaW, h: moedaH }, { x: 1700, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 1750, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 1900, y: chaoY - 100, w: moedaW, h: moedaH }, { x: 1950, y: chaoY - 100, w: moedaW, h: moedaH }, { x: 2200, y: chaoY - 190, w: moedaW, h: moedaH }, { x: 2250, y: chaoY - 190, w: moedaW, h: moedaH }, { x: 2400, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 2450, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 2600, y: chaoY - 120, w: moedaW, h: moedaH }, { x: 2650, y: chaoY - 140, w: moedaW, h: moedaH }, { x: 2700, y: chaoY - 120, w: moedaW, h: moedaH }, { x: 2900, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 2950, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 3100, y: chaoY - 120, w: moedaW, h: moedaH }, { x: 3150, y: chaoY - 120, w: moedaW, h: moedaH }, { x: 3200, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 3250, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 3600, y: chaoY - 160, w: moedaW, h: moedaH }, { x: 3650, y: chaoY - 160, w: moedaW, h: moedaH }, { x: 3800, y: chaoY - 40, w: moedaW, h: moedaH }, { x: 3850, y: chaoY - 40, w: moedaW, h: moedaH } ];
+        let moedasNivel = [];
+
+        const tamaraW = 25, tamaraH = 25;
+        let tamarasIniciais = [ { x: 1250, y: chaoY - 40, w: tamaraW, h: tamaraH }, { x: 2050, y: chaoY - 140, w: tamaraW, h: tamaraH }, { x: 3000, y: chaoY - 40, w: tamaraW, h: tamaraH } ];
+        let tamarasNivel = [];
+
+        const cameloParado = new Image(); cameloParado.src = "imgs/n1_camelo_parado_.png";
+        const cameloSalto = new Image(); cameloSalto.src = "imgs/n1_camelo_salto_.png";
+        const cameloCorrida = new Image(); cameloCorrida.src = "imgs/n1_camelo_corrida_.png";
+        const cameloMorto = new Image(); cameloMorto.src = "imgs/n1_camelo_morto_.png";
+
+        let player = {
+            x: 50, y: 0, alturaDesenho: 120,
+            larguraDesenhoCorrida: 120, larguraDesenhoParado: 100, larguraDesenhoSalto: 110,
+            larguraMorto: 150,
+            velX: 0, velY: 0, speed: 3.5, forcaSalto: -9, gravidade: 0.20, noChao: false, viradoParaEsquerda: false,
+            frameAtual: 0, totalFrames: 8, larguraFrameOriginal: 1751 / 8, frameWidthAjustado: 218, sxAdj: 0, alturaFrameOriginal: 232, tempoFrame: 0, velocidadeAnimacao: 5,
+            entrando: false
+        };
+
+        function getPlayerLargura() {
+            if (!player.noChao) return player.larguraDesenhoSalto;
+            if (teclas.left || teclas.right || player.entrando) return player.larguraDesenhoCorrida;
+            return player.larguraDesenhoParado;
+        }
+
+        let teclas = { left: false, right: false, up: false };
+
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                if (gameState === "CUTSCENE1" && !isTransitioning) {
+                    if (indexDialogo < dialogos1.length - 1) { indexDialogo++; }
+                    else { targetGameState = "NIVEL1"; isTransitioning = true; transitionPhase = 1; }
+                } else if (gameState === "CUTSCENE2" && !isTransitioning) {
+                    if (cutscene2Index === 0) { cutscene2Index = 1; }
+                    else { targetGameState = "NIVEL2"; isTransitioning = true; transitionPhase = 1; }
+                } else if (gameState === "CUTSCENE3" && !isTransitioning) {
+                    targetGameState = "NIVEL3";
+                    isTransitioning = true;
+                    transitionPhase = 1;
+                } else if (gameState === "NIVEL1" && nivel1Completo && !isTransitioning) {
+                    targetGameState = "CUTSCENE2"; isTransitioning = true; transitionPhase = 1;
+                } else if (gameState === "NIVEL2" && nivel2Completo && showNivel2FimUI && !isTransitioning) {
+                    showNivel2FimUI = false; nivel2Completo = false;
+                    targetGameState = "CUTSCENE3"; isTransitioning = true; transitionPhase = 1;
+                } else if (gameState === "NIVEL3" && nivel3Completo && showNivel3FimUI && !isTransitioning) {
+                    showNivel3FimUI = false; nivel3Completo = false;
+                    targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1;
+                    
+                    // AQUI: Parar música final e retomar bgMusic ao sair para o menu
+                    sndCaliphFrog.pause();
+                    sndCaliphFrog.currentTime = 0;
+                    if (musicaOn && bgMusic.paused) bgMusic.play().catch(e=>{});
+                    
+                } else if (gameState === "NIVEL3" && !isTransitioning && !isPaused && !isGameOver) {
+                    if (n3State === "DIALOGO") {
+                        if (indexDialogo3 < dialogos3.length - 1) { 
+                            indexDialogo3++; 
+                        } else { 
+                            n3State = "JOGAR"; 
+                            tempoInicio = Date.now();
+                        }
+                    } else if (n3State === "JOGAR") {
+                        tentativaNivel3();
+                    } else if (n3State === "GENIO_FALA") {
+                        n3State = "MAGIA_PUFF";
+                        tocarSom(sndFumo); // SOM FUMO
+                    }
+                }
+            }
+
+            if (gameState === "NIVEL1" && !isPaused && !isGameOver && !nivel1Completo && !player.entrando && !isTransitioning) {
+                if (e.code === "ArrowLeft" || e.code === "KeyA") teclas.left = true;
+                if (e.code === "ArrowRight" || e.code === "KeyD") teclas.right = true;
+                if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+                    if (player.noChao) { player.velY = player.forcaSalto; player.noChao = false; tocarSom(sndJump); }
+                }
+            }
+            if (gameState === "NIVEL2" && n2State === "PLAYING" && !isPaused && !isGameOver && !isTransitioning && !nivel2Completo) {
+                if (e.code === "ArrowLeft" || e.code === "KeyA") teclas.left = true;
+                if (e.code === "ArrowRight" || e.code === "KeyD") teclas.right = true;
+                if (e.code === "Space") {
+                    if (n2Cooldown <= 0) {
+                        n2Cooldown = 180; 
+                        n2LancarTimer = 30; 
+                        tocarSom(sndBolaMagica); // SOM BOLA MÁGICA LANÇADA
+                        n2Magias.push({
+                            x: player.x + (n2ViradoEsquerda ? -30 : 50),
+                            y: N2_FLOOR_Y - 60, 
+                            velX: n2ViradoEsquerda ? -3 : 3
+                        });
+                    }
+                }
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "KeyA") teclas.left = false;
+            if (e.code === "ArrowRight" || e.code === "KeyD") teclas.right = false;
+        });
+
+        function gerirInputNome() {
+            if (nomeAberto) {
+                const rect = canvas.getBoundingClientRect(); const inputW = 180, inputH = 30;
+                const centroPlacaX = nX + (nW / 2), centroPlacaY = nY + (nH / 2);
+                inputHTML.style.width = inputW + "px"; inputHTML.style.height = inputH + "px";
+                inputHTML.style.left = (rect.left + centroPlacaX - inputW / 2 - 40) + "px"; inputHTML.style.top = (rect.top + centroPlacaY - inputH / 2) + "px";
+                inputHTML.style.display = "block"; inputHTML.focus();
+                jpW = 100; const imgOriginalJogar = botoes.find(b => b.id === "jogar").img; jpH = (imgOriginalJogar.height / imgOriginalJogar.width) * jpW;
+                jpX = centroPlacaX + inputW / 2 - 45; jpY = centroPlacaY - jpH / 2 + 4;
+            } else { inputHTML.style.display = "none"; inputHTML.blur(); inputHTML.value = ""; }
+        }
+
+        function gerirCreditos() {
+            if (creditosAbertos) {
+                const rect = canvas.getBoundingClientRect(); const paddingX = 35, paddingTop = 50, paddingBottom = 40;
+                const divW = cW - (paddingX * 2), divH = cH - paddingTop - paddingBottom;
+                creditosHTML.style.width = divW + "px"; creditosHTML.style.height = divH + "px";
+                creditosHTML.style.left = (rect.left + cX + paddingX) + "px"; creditosHTML.style.top = (rect.top + cY + paddingTop) + "px";
+                creditosHTML.style.display = "block"; creditosHTML.scrollTop = 0;
+            } else { creditosHTML.style.display = "none"; }
+        }
+
+        function gerirAjuda() {
+            if (ajudaAberta) {
+                const rect = canvas.getBoundingClientRect(); const paddingX = 35, paddingTop = 50, paddingBottom = 40;
+                const divW = aW - (paddingX * 2), divH = aH - paddingTop - paddingBottom;
+                ajudaHTML.style.width = divW + "px"; ajudaHTML.style.height = divH + "px";
+                ajudaHTML.style.left = (rect.left + aX + paddingX) + "px"; ajudaHTML.style.top = (rect.top + aY + paddingTop) + "px";
+                ajudaHTML.style.display = "block"; ajudaHTML.scrollTop = 0;
+            } else { ajudaHTML.style.display = "none"; }
+        }
+
+        function gerirLideres() {
+            if (lideresAbertos) {
+                const rect = canvas.getBoundingClientRect(); const paddingX = 35, paddingTop = 50, paddingBottom = 40;
+                const divW = lW - (paddingX * 2), divH = lH - paddingTop - paddingBottom;
+                lideresHTML.style.width = divW + "px"; lideresHTML.style.height = divH + "px";
+                lideresHTML.style.left = (rect.left + lX + paddingX) + "px"; lideresHTML.style.top = (rect.top + lY + paddingTop) + "px";
+                let jogadoresSalvos = JSON.parse(localStorage.getItem('iznogoudLideres')) || [];
+
+                jogadoresSalvos.sort((a, b) => {
+                    if (b.moedas !== a.moedas) { return b.moedas - a.moedas; }
+                    else if (a.tempo !== b.tempo) { return a.tempo - b.tempo; }
+                    else { return (b.timestamp || 0) - (a.timestamp || 0); }
+                });
+
+                let tabelaHTML = `<table><tr><th>Nome</th><th>Moedas</th><th>Tempo</th><th>Data</th></tr>`;
+                if (jogadoresSalvos.length === 0) { tabelaHTML += `<tr><td colspan="4">Ainda não há aventureiros!</td></tr>`; }
+                else { jogadoresSalvos.forEach(j => { tabelaHTML += `<tr><td><b>${j.nome}</b></td><td>${j.moedas}</td><td>${j.tempo || 0}s</td><td>${j.data}</td></tr>`; }); }
+                tabelaHTML += `</table>`; lideresHTML.innerHTML = tabelaHTML;
+                lideresHTML.style.display = "block"; lideresHTML.scrollTop = 0;
+            } else { lideresHTML.style.display = "none"; }
+        }
+
+        function perderVida() {
+            vidas--; invulneravel = true; timerInvulneravel = 60; tocarSom(sndHit);
+            if (vidas <= 0) { 
+                vidas = 0; isGameOver = true; gameOverTimer = 0; showGameOverUI = false; tocarSom(sndLose); 
+                if (somInimigoAtivo) { somInimigoAtivo.pause(); somInimigoAtivo.currentTime = 0; somInimigoAtivo = null; }
+            }
+        }
+
+        canvas.addEventListener('click', function (event) {
+            if (!interacaoInicial) { interacaoInicial = true; if (musicaOn) bgMusic.play().catch(e => console.log("Áudio bloqueado.")); }
+            if (isTransitioning) return;
+
+            if (gameState === "MENU") {
+                if (definicoesAbertas) {
+                    if (mouseX >= posMusicaX && mouseX <= posMusicaX + btnAudioW && mouseY >= posMusicaY && mouseY <= posMusicaY + btnAudioH) { musicaOn = !musicaOn; if (musicaOn) bgMusic.play(); else bgMusic.pause(); } else if (mouseX >= posEfeitosX && mouseX <= posEfeitosX + btnAudioW && mouseY >= posEfeitosY && mouseY <= posEfeitosY + btnAudioH) { efeitosOn = !efeitosOn; } else if (mouseX < pX || mouseX > pX + pW || mouseY < pY || mouseY > pY + pH) { definicoesAbertas = false; }
+                }
+                else if (creditosAbertos) { if (mouseX < cX || mouseX > cX + cW || mouseY < cY || mouseY > cY + cH) { creditosAbertos = false; gerirCreditos(); } }
+                else if (ajudaAberta) { if (mouseX < aX || mouseX > aX + aW || mouseY < aY || mouseY > aY + aH) { ajudaAberta = false; gerirAjuda(); } }
+                else if (lideresAbertos) { if (mouseX < lX || mouseX > lX + lW || mouseY < lY || mouseY > lY + lH) { lideresAbertos = false; gerirLideres(); } }
+                else if (nomeAberto) {
+                    if (mouseX >= jpX && mouseX <= jpX + jpW && mouseY >= jpY && mouseY <= jpY + jpH) {
+                        const nomeJogador = inputHTML.value.trim();
+                        const comecaComLetra = /^[A-Z]/.test(nomeJogador); 
+
+                        if (nomeJogador !== "" && comecaComLetra) {
+                            nomeJogadorGlobal = nomeJogador;
+                            nomeAberto = false;
+                            gerirInputNome();
+                            targetGameState = "CUTSCENE1";
+                            isTransitioning = true;
+                            transitionPhase = 1;
+                        } else {
+                            alert("O nome deve começar com uma letra e conter apenas letras e números!");
+                            inputHTML.focus(); 
+                        }
+                    } else if (mouseX < nX || mouseX > nX + nW || mouseY < nY || mouseY > nH) { nomeAberto = false; gerirInputNome(); }
+                }
+                else {
+                    botoes.forEach(botao => {
+                        if (botao.hover) {
+                            if (botao.id === "definicoes") definicoesAbertas = true; else if (botao.id === "creditos") { creditosAbertos = true; gerirCreditos(); } else if (botao.id === "ajuda") { ajudaAberta = true; gerirAjuda(); } else if (botao.id === "lider") { lideresAbertos = true; gerirLideres(); } else if (botao.id === "jogar") { nomeAberto = true; gerirInputNome(); }
+                        }
+                    });
+                }
+            }
+            else if (gameState === "CUTSCENE1") {
+                let clickedSkip = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                let clickedSpace = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                
+                if (clickedSkip || clickedSpace) {
+                    if (indexDialogo < dialogos1.length - 1) {
+                        indexDialogo++;
+                    } else {
+                        targetGameState = "NIVEL1";
+                        isTransitioning = true;
+                        transitionPhase = 1;
+                    }
+                }
+            }
+            else if (gameState === "CUTSCENE2") {
+                let clickedSkip = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                let clickedSpace = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                
+                if (clickedSkip || clickedSpace) {
+                    if (cutscene2Index === 0) {
+                        cutscene2Index = 1;
+                    } else {
+                        targetGameState = "NIVEL2";
+                        isTransitioning = true;
+                        transitionPhase = 1;
+                    }
+                }
+            }
+            else if (gameState === "CUTSCENE3") {
+                let clickedSkip = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                let clickedSpace = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                
+                if (clickedSkip || clickedSpace) {
+                    targetGameState = "NIVEL3"; 
+                    isTransitioning = true;
+                    transitionPhase = 1;
+                }
+            }
+            else if (gameState === "NIVEL1") {
+                if (nivel1Completo) {
+                    let brW = 60, brH = 60; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.75) - (brH / 2);
+                    if (mouseX >= brX && mouseX <= brX + brW && mouseY >= brY && mouseY <= brY + brH) {
+                        targetGameState = "CUTSCENE2"; isTransitioning = true; transitionPhase = 1;
+                    }
+                }
+                else if (isGameOver && showGameOverUI) {
+                    if (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH) {
+                        isGameOver = false; showGameOverUI = false;
+                        targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1;
+                    }
+                }
+                else if (!isPaused && !isGameOver && !nivel1Completo && !player.entrando) {
+                    if (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH) { isPaused = true; tempoPausaStart = Date.now(); }
+                } else if (isPaused) {
+                    if (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) { musicaOn = !musicaOn; if (musicaOn) bgMusic.play(); else bgMusic.pause(); }
+                    else if (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH) { efeitosOn = !efeitosOn; }
+                    else if (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH) { isPaused = false; targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1; }
+                    else if (mouseX < ppX || mouseX > ppX + ppW || mouseY < ppY || mouseY > ppY + ppH) { isPaused = false; tempoInicio += (Date.now() - tempoPausaStart); }
+                }
+            }
+            else if (gameState === "NIVEL2") {
+                if (nivel2Completo && showNivel2FimUI) {
+                    let brW = 40, brH = 40; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.72) - (brH / 2);
+                    if (mouseX >= brX && mouseX <= brX + brW && mouseY >= brY && mouseY <= brY + brH) {
+                        showNivel2FimUI = false;
+                        nivel2Completo = false;
+                        targetGameState = "CUTSCENE3"; isTransitioning = true; transitionPhase = 1;
+                    }
+                }
+                else if (isGameOver && showGameOverUI) {
+                    if (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH) {
+                        isGameOver = false; showGameOverUI = false;
+                        targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1;
+                    }
+                }
+                else if (!isPaused && !isGameOver) {
+                    if (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH) { isPaused = true; tempoPausaStart = Date.now(); }
+                } else if (isPaused) {
+                    if (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) { musicaOn = !musicaOn; if (musicaOn) bgMusic.play(); else bgMusic.pause(); }
+                    else if (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH) { efeitosOn = !efeitosOn; }
+                    else if (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH) { isPaused = false; targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1; }
+                    else if (mouseX < ppX || mouseX > ppX + ppW || mouseY < ppY || mouseY > ppY + ppH) { isPaused = false; tempoInicio += (Date.now() - tempoPausaStart); }
+                }
+            }
+            else if (gameState === "NIVEL3") {
+                if (nivel3Completo && showNivel3FimUI) {
+                    if (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH) {
+                        showNivel3FimUI = false;
+                        nivel3Completo = false;
+                        targetGameState = "MENU"; 
+                        isTransitioning = true; 
+                        transitionPhase = 1;
+                        
+                        // AQUI: Parar música final e retomar bgMusic ao clicar no botão "SAIR"
+                        sndCaliphFrog.pause();
+                        sndCaliphFrog.currentTime = 0;
+                        if (musicaOn && bgMusic.paused) bgMusic.play().catch(e=>{});
+                    }
+                }
+                else if (isGameOver && showGameOverUI) {
+                    if (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH) {
+                        isGameOver = false; showGameOverUI = false;
+                        targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1;
+                    }
+                }
+                else if (!isPaused && !isGameOver) {
+                    if (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH) { 
+                        isPaused = true; tempoPausaStart = Date.now(); 
+                        return; 
+                    }
+
+                    if (n3State === "DIALOGO") {
+                        let clickedSkip = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                        let clickedSpace = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                        
+                        if (clickedSkip || clickedSpace) {
+                            if (indexDialogo3 < dialogos3.length - 1) {
+                                indexDialogo3++;
+                            } else {
+                                n3State = "JOGAR";
+                                tempoInicio = Date.now();
+                            }
+                        }
+                    } else if (n3State === "JOGAR") {
+                        tentativaNivel3(); 
+                    } else if (n3State === "GENIO_FALA") {
+                        let clickedSkip = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                        let clickedSpace = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                        if (clickedSkip || clickedSpace || true) { 
+                            n3State = "MAGIA_PUFF";
+                            tocarSom(sndFumo); // SOM FUMO
+                        }
+                    }
+                } 
+                else if (isPaused) {
+                    if (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) { musicaOn = !musicaOn; if (musicaOn) bgMusic.play(); else bgMusic.pause(); }
+                    else if (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH) { efeitosOn = !efeitosOn; }
+                    else if (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH) { isPaused = false; targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1; }
+                    else if (mouseX < ppX || mouseX > ppX + ppW || mouseY < ppY || mouseY > ppY + ppH) { isPaused = false; tempoInicio += (Date.now() - tempoPausaStart); }
+                }
+            }
+        });
+
+        const introImage = new Image(); introImage.src = "imgs/Iz_intro.jpg"; let introLoaded = false; introImage.onload = () => introLoaded = true;
+        const imgAudioOn = new Image(); imgAudioOn.src = "imgs/btn_audio_on.png"; const imgAudioOff = new Image(); imgAudioOff.src = "imgs/btn_audio_off.png";
+        const placaDefinicoes = new Image(); placaDefinicoes.src = "imgs/placa_definicoes.png"; let placaLoaded = false; placaDefinicoes.onload = function () { placaLoaded = true; pH = GAME_HEIGHT * 0.60; pW = placaDefinicoes.width * (pH / placaDefinicoes.height); pX = (GAME_WIDTH - pW) / 2; pY = (GAME_HEIGHT - pH) / 2; posMusicaX = pX + (pW * 0.3) - (btnAudioW / 2); posEfeitosX = pX + (pW * 0.7) - (btnAudioW / 2); posMusicaY = pY + (pH * 0.55) - (btnAudioH / 2); posEfeitosY = pY + (pH * 0.55) - (btnAudioH / 2); };
+        const placaCreditos = new Image(); placaCreditos.src = "imgs/placa_creditos.png"; let placaCreditosLoaded = false; placaCreditos.onload = function () { placaCreditosLoaded = true; cH = GAME_HEIGHT * 0.60; cW = placaCreditos.width * (cH / placaCreditos.height); cX = (GAME_WIDTH - cW) / 2; cY = (GAME_HEIGHT - cH) / 2; };
+        const placaLideres = new Image(); placaLideres.src = "imgs/placa_lideres.png"; let placaLideresLoaded = false; placaLideres.onload = function () { placaLideresLoaded = true; lH = GAME_HEIGHT * 0.60; lW = placaLideres.width * (lH / placaLideres.height); lX = (GAME_WIDTH - lW) / 2; lY = (GAME_HEIGHT - lH) / 2; };
+        const placaAjuda = new Image(); placaAjuda.src = "imgs/placa_ajuda.png"; let placaAjudaLoaded = false; placaAjuda.onload = function () { placaAjudaLoaded = true; aH = GAME_HEIGHT * 0.60; aW = placaAjuda.width * (aH / placaAjuda.height); aX = (GAME_WIDTH - aW) / 2; aY = (GAME_HEIGHT - aH) / 2; };
+        const placaNome = new Image(); placaNome.src = "imgs/placa_nome.png"; let placaNomeLoaded = false; placaNome.onload = function () { placaNomeLoaded = true; nH = GAME_HEIGHT * 0.40; nW = placaNome.width * (nH / placaNome.height); nX = (GAME_WIDTH - nW) / 2; nY = (GAME_HEIGHT - nH) / 2; };
+        const botoes = [{ id: "jogar", src: "imgs/btn_jogar.png", img: new Image(), origW: 1179, origH: 394, hover: false }, { id: "definicoes", src: "imgs/btn_definicoes.png", img: new Image(), origW: 1028, origH: 336, hover: false }, { id: "creditos", src: "imgs/btn_creditos.png", img: new Image(), origW: 910, origH: 239, hover: false }, { id: "lider", src: "imgs/btn_lider.png", img: new Image(), origW: 188, origH: 146, hover: false }, { id: "ajuda", src: "imgs/btn_ajuda.png", img: new Image(), origW: 188, origH: 146, hover: false }];
+        botoes.forEach(botao => { botao.img.src = botao.src; botao.img.onload = () => { botao.carregado = true; }; });
+
+        const larguraAlvoMaiorBotao = 220; const escalaBotoes = larguraAlvoMaiorBotao / botoes[0].origW; const espacamentoVertical = 20;
+        const botoesColuna = botoes.filter(b => b.id !== "lider" && b.id !== "ajuda");
+        let alturaTotalColuna = 0; botoesColuna.forEach(b => { b.w = b.origW * escalaBotoes; b.h = b.origH * escalaBotoes; alturaTotalColuna += b.h; });
+        alturaTotalColuna += espacamentoVertical * (botoesColuna.length - 1); let posYAtual = (GAME_HEIGHT - alturaTotalColuna) / 2; const centroDireitaX = GAME_WIDTH * 0.75;
+        botoesColuna.forEach(b => { b.x = centroDireitaX - (b.w / 2); b.y = posYAtual; posYAtual += b.h + espacamentoVertical; });
+        const btnLider = botoes.find(b => b.id === "lider"); btnLider.w = 50; btnLider.h = (btnLider.origH / btnLider.origW) * btnLider.w; btnLider.x = GAME_WIDTH - btnLider.w - 40; btnLider.y = GAME_HEIGHT - btnLider.h - 30;
+        const btnAjuda = botoes.find(b => b.id === "ajuda"); btnAjuda.w = 50; btnAjuda.h = (btnAjuda.origH / btnAjuda.origW) * btnAjuda.w; btnAjuda.x = btnLider.x - btnAjuda.w - 15; btnAjuda.y = GAME_HEIGHT - btnAjuda.h - 30;
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            let deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            update(deltaTime, timestamp);
+            draw(ctx);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime, timestamp) {
+            let cursorPointer = false; btnJogarPequenoHover = false; btnNextHover = false; btnSkipHover = false; btnSpaceSkipHover = false;
+
+            if (isTransitioning) {
+                if (transitionPhase === 1) {
+                    if (somInimigoAtivo) { somInimigoAtivo.pause(); somInimigoAtivo.currentTime = 0; somInimigoAtivo = null; }
+                    sndGalope.pause();
+                    sndCorrer.pause();
+                    if (typeof sndRessonarN3 !== 'undefined') sndRessonarN3.pause();
+                    if (typeof sndEsfregar !== 'undefined') sndEsfregar.pause();
+                    
+                    // AQUI: Parar música de transição/final ao ir para qualquer transição
+                    sndCaliphFrog.pause();
+                    sndCaliphFrog.currentTime = 0;
+
+                    if (targetGameState === "MENU") {
+                        // AQUI: Retomar bgMusic ao voltar ao Menu (se estiver ativa)
+                        if (musicaOn && bgMusic.paused) bgMusic.play().catch(e=>{});
+                    }
+
+                    transitionAlpha += 0.01;
+                    if (transitionAlpha >= 1) {
+                        transitionAlpha = 1;
+                        transitionPhase = 2;
+
+                        gameState = targetGameState;
+
+                        if (targetGameState === "CUTSCENE1") {
+                            indexDialogo = 0;
+                        }
+                        else if (targetGameState === "CUTSCENE2") {
+                            cutscene2Index = 0;
+                        }
+                        else if (targetGameState === "CUTSCENE3") {
+                            cutscene3IzX = GAME_WIDTH + 100; 
+                            cutscene3CameloX = GAME_WIDTH + 100; 
+                            cutscene3FrameIz = 0;
+                            cutscene3FrameCamelo = 0;
+                            cutscene3Timer = 0;
+                            cutscene3IzFinished = false; 
+                            cutscene3DelayTimer = 0;
+                        }
+                        else if (targetGameState === "NIVEL1") {
+                            vidas = 3; moedas = 0; tempoAcumulado = 0;
+                            isPaused = false; isGameOver = false; showGameOverUI = false; nivel1Completo = false;
+                            nivel2Completo = false; showNivel2FimUI = false;
+                            bgX = 0; player.x = -150; player.y = chaoY - player.alturaDesenho; player.velY = 0;
+                            player.noChao = true; player.entrando = true;
+
+                            let limiteItems = 99999;
+                            if (bgNivel1Loaded) { const scaleBg = GAME_HEIGHT / bgNivel1.height; limiteItems = (bgNivel1.width * scaleBg) - 450; }
+                            catos = JSON.parse(JSON.stringify(catosInitiais)).filter(item => item.x < limiteItems);
+                            guardas = JSON.parse(JSON.stringify(guardasIniciais)).filter(item => item.maxX < limiteItems);
+                            moedasNivel = JSON.parse(JSON.stringify(moedasIniciais)).filter(item => item.x < limiteItems);
+                            tamarasNivel = JSON.parse(JSON.stringify(tamarasIniciais)).filter(item => item.x < limiteItems);
+                        }
+                        else if (targetGameState === "NIVEL2") {
+                            n2State = "FALLING";
+                            
+                            // AQUI: Ajuste do timing do grito de queda com um setTimeout.
+                            // 800ms é sensivelmente quando o ecrã começa a clarear na transição.
+                            // Se quiseres que grite antes, reduz o número. Se quiseres depois, aumenta.
+                            setTimeout(() => { tocarSom(sndGritoQueda); }, 800);
+                            
+                            n2Timer = 0;
+                            n2BgY = 0; 
+                            n2BgX = -(3225 - GAME_WIDTH); 
+                            
+                            player.x = (GAME_WIDTH / 2) + 75; 
+                            player.y = -150; 
+                            n2Cooldown = 0;
+                            n2LancarTimer = 0;
+                            n2Magias = [];
+                            n2Inimigos = JSON.parse(JSON.stringify(n2InimigosIniciais)); 
+                            n2Moedas = JSON.parse(JSON.stringify(n2MoedasIniciais)); 
+                            n2Tamaras = JSON.parse(JSON.stringify(n2TamarasIniciais)); 
+                            
+                            n2ViradoEsquerda = true; 
+                            n2SomQuedaTocado = false;
+                            teclas.left = false; teclas.right = false; 
+                            player.tempoFrame = 0;
+                            player.frameAtual = 0;
+                        }
+                        else if (targetGameState === "NIVEL3") {
+                            n3State = "DIALOGO"; 
+                            indexDialogo3 = 0;   
+                            n3Hits = 0;
+                            n3Misses = 0;
+                            n3CursorX = 0;
+                            n3CursorDir = 1;
+                            n3CursorSpeed = 1.5;
+                            n3FeedbackTimer = 0;
+                            n3GenioAlpha = 0;
+                            n3PuffFrame = 0;
+                            nivel3Completo = false;
+                            showNivel3FimUI = false;
+                            isNovoRecorde = false;
+
+                            bgX = 0; 
+                            player.x = 50; 
+                            player.y = chaoY - player.alturaDesenho; 
+                            player.velY = 0;
+                            player.noChao = true;
+                            teclas.left = false; teclas.right = false;
+                            player.frameAtual = 0;
+                        }
+                    }
+                } else if (transitionPhase === 2) {
+                    transitionAlpha -= 0.005;
+                    if (transitionAlpha <= 0) { transitionAlpha = 0; isTransitioning = false; transitionPhase = 0; }
+                }
+            }
+
+            if (gameState === "MENU" && !isTransitioning) {
+                if (!definicoesAbertas && !creditosAbertos && !lideresAbertos && !ajudaAberta && !nomeAberto) {
+                    botoes.forEach(botao => { if (mouseX >= botao.x && mouseX <= botao.x + botao.w && mouseY >= botao.y && mouseY <= botao.y + botao.h) { botao.hover = true; cursorPointer = true; } else { botao.hover = false; } });
+                } else { botoes.forEach(botao => botao.hover = false); if (definicoesAbertas) { cursorPointer = true; } else if (nomeAberto) { if (mouseX >= jpX && mouseX <= jpX + jpW && mouseY >= jpY && mouseY <= jpY + jpH) { btnJogarPequenoHover = true; cursorPointer = true; } else { cursorPointer = true; } } else { cursorPointer = true; } }
+            }
+            else if (gameState === "CUTSCENE1" && !isTransitioning) {
+                if (timestamp - talkAnimationTimer > talkAnimationSpeed) { talkAnimationFrame = (talkAnimationFrame + 1) % 2; talkAnimationTimer = timestamp; }
+                btnSkipHover = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                btnSpaceSkipHover = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                if (btnSkipHover || btnSpaceSkipHover) cursorPointer = true;
+            }
+            else if (gameState === "CUTSCENE2" && !isTransitioning) {
+                btnSkipHover = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                btnSpaceSkipHover = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                if (btnSkipHover || btnSpaceSkipHover) cursorPointer = true;
+            }
+            else if (gameState === "CUTSCENE3" && !isTransitioning) {
+                btnSkipHover = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                btnSpaceSkipHover = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                if (btnSkipHover || btnSpaceSkipHover) cursorPointer = true;
+
+                let cameloCorrendoC3 = false;
+                let izCorrendoC3 = false;
+
+                if (!cutscene3IzFinished) {
+                    izCorrendoC3 = true;
+                    cutscene3IzX -= 3; cutscene3Timer++;
+                    if (cutscene3Timer % 5 === 0) { cutscene3FrameIz = (cutscene3FrameIz + 1) % 7; }
+                    let pW = (1492 / 7) * 0.35;
+                    if (cutscene3IzX + pW < 0) { cutscene3IzFinished = true; cutscene3DelayTimer = Date.now(); }
+                } else {
+                    if (Date.now() - cutscene3DelayTimer >= 1500) {
+                        cameloCorrendoC3 = true;
+                        cutscene3CameloX -= 4; cutscene3Timer++;
+                        if (cutscene3Timer % 6 === 0) { cutscene3FrameCamelo = (cutscene3FrameCamelo + 1) % 4; }
+                        let cW = (722 / 4) * 0.85;
+                        if (cutscene3CameloX + cW < -50) { targetGameState = "NIVEL3"; isTransitioning = true; transitionPhase = 1; }
+                    }
+                }
+                updateRunningSound(sndGalope, cameloCorrendoC3);
+                updateRunningSound(sndCorrer, izCorrendoC3);
+            }
+            else if (gameState === "NIVEL1") {
+                let cameloCorrendoN1 = false;
+
+                if (nivel1Completo) {
+                    let brW = 60, brH = 60; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.75) - (brH / 2);
+                    if (mouseX >= brX && mouseX <= brX + brW && mouseY >= brY && mouseY <= brY + brH) { btnNextHover = true; cursorPointer = true; }
+                }
+                else if (isGameOver) {
+                    if (!showGameOverUI) { gameOverTimer++; if (gameOverTimer > 180) { showGameOverUI = true; } }
+                    else { btnExitHover = (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH); if (btnExitHover) cursorPointer = true; }
+                    player.y = chaoY - player.alturaDesenho; player.noChao = true; teclas.left = false; teclas.right = false; teclas.up = false;
+                }
+                else if (isPaused) {
+                    btnExitHover = (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH);
+                    if (btnExitHover || (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) || (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH)) { cursorPointer = true; }
+                }
+                else {
+                    btnPausaHover = (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH);
+                    if (btnPausaHover) cursorPointer = true;
+
+                    tempoFrameMoeda++;
+                    if (tempoFrameMoeda >= velAnimMoeda) { tempoFrameMoeda = 0; frameMoeda = (frameMoeda + 1) % M_ANIM_FRAMES; }
+
+                    let currentLargura = getPlayerLargura();
+
+                    if (bgNivel1Loaded) {
+                        const scaleBg = GAME_HEIGHT / bgNivel1.height; const larguraRealBg = bgNivel1.width * scaleBg; limitBgX = -(larguraRealBg - GAME_WIDTH);
+                        if (!nivel1Completo && !isGameOver && (Math.abs(bgX) + player.x > larguraRealBg - 350)) {
+                            nivel1Completo = true; teclas.left = false; teclas.right = false; teclas.up = false;
+                            tempoAcumulado = tempoDecorrido;
+                            tocarSom(sndVitoria, 0.3); // Volume reduzido
+                        }
+                    }
+
+                    if (player.entrando) {
+                        cameloCorrendoN1 = true;
+                        player.x += 3; player.viradoParaEsquerda = false; player.tempoFrame++;
+                        if (player.tempoFrame >= player.velocidadeAnimacao) { player.tempoFrame = 0; player.frameAtual = (player.frameAtual + 1) % player.totalFrames; }
+                        if (player.x >= 50) { player.x = 50; player.entrando = false; player.frameAtual = 0; tempoInicio = Date.now(); }
+                    }
+                    else {
+                        if (!nivel1Completo) { tempoDecorrido = tempoAcumulado + Math.floor((Date.now() - tempoInicio) / 1000); }
+                        let oldPlayerX = player.x; let oldBgX = bgX;
+
+                        player.velY += player.gravidade; player.y += player.velY;
+                        if (player.y + player.alturaDesenho >= chaoY) { player.y = chaoY - player.alturaDesenho; player.velY = 0; player.noChao = true; }
+
+                        if (teclas.right) {
+                            player.viradoParaEsquerda = false;
+                            if (bgX > limitBgX && player.x >= GAME_WIDTH / 2) { bgX -= player.speed; if (bgX < limitBgX) bgX = limitBgX; }
+                            else { player.x += player.speed; if (player.x + currentLargura > GAME_WIDTH) { player.x = GAME_WIDTH - currentLargura; } }
+                        }
+                        else if (teclas.left) {
+                            player.viradoParaEsquerda = true;
+                            if (bgX < 0 && player.x <= GAME_WIDTH / 2) { bgX += player.speed; if (bgX > 0) bgX = 0; }
+                            else { player.x -= player.speed; if (player.x < 0) player.x = 0; }
+                        }
+
+                        if (player.noChao && (teclas.left || teclas.right)) {
+                            cameloCorrendoN1 = true;
+                            player.tempoFrame++;
+                            if (player.tempoFrame >= player.velocidadeAnimacao) { player.tempoFrame = 0; player.frameAtual = (player.frameAtual + 1) % player.totalFrames; }
+                        } else { player.frameAtual = 0; }
+
+                        let playerCX = player.x + 30; let playerCY = player.y + 20; let playerCW = currentLargura - 60; let playerCH = player.alturaDesenho - 20; let bateuParede = false;
+
+                        guardas.forEach(guarda => {
+                            if (!guarda.derrotado) {
+                                guarda.x += guarda.velX;
+                                if (guarda.x <= guarda.minX) { guarda.velX = Math.abs(guarda.velX); guarda.viradoParaEsquerda = false; }
+                                if (guarda.x >= guarda.maxX) { guarda.velX = -Math.abs(guarda.velX); guarda.viradoParaEsquerda = true; }
+                                guarda.tempoFrame++; if (guarda.tempoFrame >= guarda.velocidadeAnimacao) { guarda.tempoFrame = 0; guarda.frameAtual = (guarda.frameAtual + 1) % G_RUN_FRAMES; }
+                            }
+                            let guardaScreenX = guarda.x + bgX;
+                            if (playerCX < guardaScreenX + guarda.w && playerCX + playerCW > guardaScreenX && playerCY < guarda.y + guarda.h && playerCY + playerCH > guarda.y) {
+                                if (!guarda.derrotado) {
+                                    let bottomPlayer = playerCY + playerCH;
+                                    if (player.velY > 0 && bottomPlayer - player.velY - 15 <= guarda.y + 20) {
+                                        guarda.derrotado = true; player.velY = player.forcaSalto * 0.7; guarda.w = TARGET_G_DERROTA_W; guarda.h = TARGET_G_DERROTA_H; guarda.y = chaoY - guarda.h;
+                                        moedas += 5;
+                                        tocarSom(sndInimigo);
+                                    } else { bateuParede = true; if (!invulneravel) perderVida(); }
+                                }
+                            }
+                        });
+
+                        catos.forEach(cato => {
+                            let catoScreenX = cato.x + bgX;
+                            if (playerCX < catoScreenX + cato.w && playerCX + playerCW > catoScreenX && playerCY < cato.y + cato.h && playerCY + playerCH > cato.y) {
+                                let bottomPlayer = playerCY + playerCH;
+                                if (player.velY > 0 && bottomPlayer - player.velY - 15 <= cato.y + 20) { player.velY = -8; } else { bateuParede = true; }
+                                if (!invulneravel) perderVida();
+                            }
+                        });
+
+                        if (invulneravel) { timerInvulneravel--; if (timerInvulneravel <= 0) invulneravel = false; }
+                        if (bateuParede) { player.x = oldPlayerX; bgX = oldBgX; playerCX = player.x + 30; }
+
+                        for (let i = moedasNivel.length - 1; i >= 0; i--) { let m = moedasNivel[i]; let moedaScreenX = m.x + bgX; if (playerCX < moedaScreenX + m.w && playerCX + playerCW > moedaScreenX && playerCY < m.y + m.h && playerCY + playerCH > m.y) { moedas++; moedasNivel.splice(i, 1); tocarSom(sndCoin); } }
+                        for (let i = tamarasNivel.length - 1; i >= 0; i--) { let t = tamarasNivel[i]; let tamaraScreenX = t.x + bgX; if (playerCX < tamaraScreenX + t.w && playerCX + playerCW > tamaraScreenX && playerCY < t.y + t.h && playerCY + playerCH > t.y) { if (vidas < 3) vidas++; tamarasNivel.splice(i, 1); tocarSom(sndTamara); } }
+                    }
+                }
+                updateRunningSound(sndGalope, cameloCorrendoN1);
+            }
+            else if (gameState === "NIVEL2" && !isTransitioning) {
+                let izCorrendoN2 = false;
+
+                if (isPaused) {
+                    btnExitHover = (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH);
+                    if (btnExitHover || (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) || (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH)) { cursorPointer = true; }
+                } else if (isGameOver) {
+                    if (!showGameOverUI) { gameOverTimer++; if (gameOverTimer > 180) { showGameOverUI = true; } }
+                    else { btnExitHover = (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH); if (btnExitHover) cursorPointer = true; }
+                    teclas.left = false; teclas.right = false; teclas.up = false;
+                } else if (nivel2Completo && showNivel2FimUI) {
+                    let brW = 40, brH = 40; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.72) - (brH / 2);
+                    btnNextHover = (mouseX >= brX && mouseX <= brX + brW && mouseY >= brY && mouseY <= brY + brH);
+                    if (btnNextHover) cursorPointer = true;
+                } else {
+                    btnPausaHover = (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH);
+                    if (btnPausaHover) cursorPointer = true;
+
+                    tempoFrameMoeda++;
+                    if (tempoFrameMoeda >= velAnimMoeda) { tempoFrameMoeda = 0; frameMoeda = (frameMoeda + 1) % M_ANIM_FRAMES; }
+
+                    const maxBgY = -(790 - GAME_HEIGHT);
+
+                    if (n2State === "FALLING" || n2State === "LANDED") {
+                        tempoDecorrido = tempoAcumulado;
+                    } else if (n2State === "PLAYING") {
+                        if (!nivel2Completo) {
+                            tempoDecorrido = tempoAcumulado + Math.floor((Date.now() - tempoInicio) / 1000);
+                        }
+                    }
+
+                    if (n2State === "FALLING") {
+                        if (n2BgY > maxBgY) { n2BgY -= 2; }
+                        let targetPlayerY = N2_FLOOR_Y - (213 * 0.35); 
+                        if (player.y < targetPlayerY) { player.y += 1.9; }
+
+                        if (player.y >= targetPlayerY - 40 && !n2SomQuedaTocado) {
+                            tocarSom(sndSomQueda);
+                            n2SomQuedaTocado = true;
+                        }
+
+                        if (n2BgY <= maxBgY && player.y >= targetPlayerY) {
+                            n2State = "LANDED"; n2BgY = maxBgY; player.y = targetPlayerY; 
+                        }
+                    }
+                    else if (n2State === "LANDED") {
+                        n2Timer++; if (n2Timer >= 120) { n2State = "PLAYING"; tempoInicio = Date.now(); }
+                    }
+                    else if (n2State === "PLAYING") {
+                        if (n2Cooldown > 0) n2Cooldown--;
+                        if (n2LancarTimer > 0) n2LancarTimer--;
+                        if (invulneravel) { timerInvulneravel--; if (timerInvulneravel <= 0) invulneravel = false; }
+
+                        let n2Speed = 4; let oldPlayerX = player.x; let oldN2BgX = n2BgX;
+                        
+                        if (nivel2Completo) {
+                            izCorrendoN2 = true;
+                            player.x -= 3; n2ViradoEsquerda = true; player.tempoFrame++;
+                            if (player.tempoFrame >= 10) { player.tempoFrame = 0; player.frameAtual = (player.frameAtual + 1) % 7; }
+                            // Aqui o guardarScore() foi removido para só guardar no Nível 3!
+                            if (!showNivel2FimUI && Date.now() - n2FimTimer >= 2000) { showNivel2FimUI = true; }
+                        }
+                        else {
+                            if (teclas.left) {
+                                n2ViradoEsquerda = true; let posicaoGlobalX = player.x - n2BgX; let limiteParedeEsquerda = -150; 
+                                if (posicaoGlobalX - n2Speed > limiteParedeEsquerda) {
+                                    if (n2BgX < 0 && player.x <= GAME_WIDTH / 2) { n2BgX += n2Speed; if (n2BgX > 0) n2BgX = 0; } 
+                                    else { player.x -= n2Speed; }
+                                }
+                                if (posicaoGlobalX <= 20 && !nivel2Completo) {
+                                    nivel2Completo = true; n2FimTimer = Date.now(); tempoAcumulado = tempoDecorrido; teclas.left = false; teclas.right = false;
+                                    if (somInimigoAtivo) { somInimigoAtivo.pause(); somInimigoAtivo.currentTime = 0; somInimigoAtivo = null; }
+                                    tocarSom(sndVitoria, 0.3); // Volume reduzido
+                                }
+                            }
+                            else if (teclas.right) {
+                                n2ViradoEsquerda = false; let posicaoGlobalX = player.x - n2BgX; let limiteParedeDireita = 2960; 
+                                if (posicaoGlobalX + n2Speed < limiteParedeDireita) {
+                                    let larguraTotalCenario = 3225; let maxBgX = -(larguraTotalCenario - GAME_WIDTH);
+                                    if (n2BgX > maxBgX && player.x >= GAME_WIDTH / 2) {
+                                        n2BgX -= n2Speed; if (n2BgX < maxBgX) n2BgX = maxBgX;
+                                    } else {
+                                        let larguraBoneco = 80; if (player.x + n2Speed < GAME_WIDTH - larguraBoneco) { player.x += n2Speed; }
+                                    }
+                                }
+                            }
+                            if (teclas.left || teclas.right) {
+                                izCorrendoN2 = true;
+                                player.tempoFrame++; if (player.tempoFrame >= 10) { player.tempoFrame = 0; player.frameAtual = (player.frameAtual + 1) % 7; }
+                            } else { player.frameAtual = 0; }
+                        }
+
+                        let bateuInimigo = false; let playerCX = player.x + 30; let playerCW = 80; let playerCY = N2_FLOOR_Y - (325 * 0.35) + 20; let playerCH = (325 * 0.35) - 20;
+
+                        for (let i = n2Inimigos.length - 1; i >= 0; i--) {
+                            let inimigo = n2Inimigos[i];
+                            if (inimigo.estado === "VIVO") {
+                                inimigo.x += inimigo.velX;
+                                if (inimigo.x <= inimigo.minX) { inimigo.velX = Math.abs(inimigo.velX); inimigo.viradoParaEsquerda = false; }
+                                if (inimigo.x >= inimigo.maxX) { inimigo.velX = -Math.abs(inimigo.velX); inimigo.viradoParaEsquerda = true; }
+                                inimigo.tempoFrame++;
+                                if (inimigo.tempoFrame >= inimigo.velAnim) {
+                                    inimigo.tempoFrame = 0;
+                                    if (inimigo.tipo === 'cobra') inimigo.frameAtual = (inimigo.frameAtual + 1) % 4;
+                                    else if (inimigo.tipo === 'rato') inimigo.frameAtual = (inimigo.frameAtual + 1) % 6;
+                                }
+                                let inimigoScreenX = inimigo.x + n2BgX;
+                                
+                                // DETEÇÃO DE SONS AO APARECER NO ECRÃ
+                                if (!inimigo.somTocado && inimigoScreenX > 0 && inimigoScreenX < GAME_WIDTH) {
+                                    inimigo.somTocado = true;
+                                    
+                                    if (somInimigoAtivo) {
+                                        somInimigoAtivo.pause();
+                                        somInimigoAtivo.currentTime = 0;
+                                    }
+                                    
+                                    if (efeitosOn) {
+                                        if (inimigo.tipo === 'rato') somInimigoAtivo = sndRato;
+                                        else if (inimigo.tipo === 'cobra') somInimigoAtivo = sndSnake;
+                                        else if (inimigo.tipo === 'esqueleto') somInimigoAtivo = sndRessonar;
+
+                                        if (somInimigoAtivo) {
+                                            somInimigoAtivo.volume = 0.6;
+                                            somInimigoAtivo.play().catch(e => {});
+                                        }
+                                    }
+                                }
+
+                                if (playerCX < inimigoScreenX + inimigo.w && playerCX + playerCW > inimigoScreenX && playerCY < inimigo.y + inimigo.h && playerCY + playerCH > inimigo.y) {
+                                    bateuInimigo = true; if (!invulneravel) perderVida();
+                                }
+                            } else if (inimigo.estado === "MORTO") {
+                                inimigo.tempoFrame++;
+                                if (inimigo.tempoFrame >= 12) { 
+                                    inimigo.tempoFrame = 0; inimigo.frameAtual++;
+                                    if (inimigo.frameAtual >= 4) { n2Inimigos.splice(i, 1); }
+                                }
+                            }
+                        }
+
+                        if (bateuInimigo) { player.x = oldPlayerX; n2BgX = oldN2BgX; playerCX = player.x + 30; }
+
+                        let mw = 151 * 0.4; let mh = 92 * 0.4; 
+                        for (let i = n2Magias.length - 1; i >= 0; i--) {
+                            let m = n2Magias[i]; m.x += m.velX; let mRemoved = false;
+                            for (let e = 0; e < n2Inimigos.length; e++) {
+                                let inimigo = n2Inimigos[e];
+                                if (inimigo.estado === "VIVO") {
+                                    let inimigoScreenX = inimigo.x + n2BgX;
+                                    if (m.x < inimigoScreenX + inimigo.w && m.x + mw > inimigoScreenX && m.y < inimigo.y + inimigo.h && m.y + mh > inimigo.y) {
+                                        inimigo.estado = "MORTO"; inimigo.frameAtual = 0; inimigo.tempoFrame = 0; moedas += 5; 
+                                        
+                                        // PARAR O SOM DO INIMIGO IMEDIATAMENTE
+                                        if (somInimigoAtivo) {
+                                            somInimigoAtivo.pause();
+                                            somInimigoAtivo.currentTime = 0;
+                                            somInimigoAtivo = null; 
+                                        }
+
+                                        tocarSom(sndFumo); // Toca o som de fumo/morte
+                                        
+                                        let oldCX = inimigo.x + inimigo.w / 2; let oldBottom = inimigo.y + inimigo.h; let scalePuff = 0.18;
+                                        inimigo.w = (658.5 - 4) * scalePuff; inimigo.h = 590 * scalePuff; inimigo.x = oldCX - inimigo.w / 2; inimigo.y = oldBottom - inimigo.h;
+                                        mRemoved = true; break;
+                                    }
+                                }
+                            }
+                            if (mRemoved || m.x < -200 || m.x > GAME_WIDTH + 200) { n2Magias.splice(i, 1); }
+                        }
+
+                        for (let i = n2Moedas.length - 1; i >= 0; i--) { let m = n2Moedas[i]; let moedaScreenX = m.x + n2BgX; if (playerCX < moedaScreenX + m.w && playerCX + playerCW > moedaScreenX && playerCY < m.y + m.h && playerCY + playerCH > m.y) { moedas++; n2Moedas.splice(i, 1); tocarSom(sndCoin); } }
+                        for (let i = n2Tamaras.length - 1; i >= 0; i--) { let t = n2Tamaras[i]; let tamaraScreenX = t.x + n2BgX; if (playerCX < tamaraScreenX + t.w && playerCX + playerCW > tamaraScreenX && playerCY < t.y + t.h && playerCY + playerCH > t.y) { if (vidas < 3) vidas++; n2Tamaras.splice(i, 1); tocarSom(sndTamara); } }
+                    }
+                }
+                updateRunningSound(sndCorrer, izCorrendoN2);
+            }
+            else if (gameState === "NIVEL3" && !isTransitioning) {
+                
+                let isRessonar = (!isPaused && !isGameOver && !nivel3Completo);
+                updateRunningSound(sndRessonarN3, isRessonar);
+
+                let isEsfregar = (n3State === "JOGAR" && !isPaused && !isGameOver);
+                updateRunningSound(sndEsfregar, isEsfregar);
+
+                if (!isGameOver && !nivel3Completo) {
+                    btnPausaHover = (mouseX >= btnPausaX && mouseX <= btnPausaX + btnPausaW && mouseY >= btnPausaY && mouseY <= btnPausaY + btnPausaH);
+                    if (btnPausaHover) cursorPointer = true;
+                }
+
+                if (isGameOver) {
+                    if (!showGameOverUI) { gameOverTimer++; if (gameOverTimer > 180) { showGameOverUI = true; } }
+                    else { btnExitHover = (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH); if (btnExitHover) cursorPointer = true; }
+                } 
+                else if (nivel3Completo && showNivel3FimUI) {
+                    btnExitHover = (mouseX >= pgPosExitX && mouseX <= pgPosExitX + pgBtnExitW && mouseY >= pgPosExitY && mouseY <= pgPosExitY + pgBtnExitH); 
+                    if (btnExitHover) cursorPointer = true;
+                }
+                else if (!isPaused) {
+                    if (n3State === "DIALOGO") {
+                        tempoDecorrido = tempoAcumulado; 
+                    } else if (n3State === "JOGAR") { 
+                        tempoDecorrido = tempoAcumulado + Math.floor((Date.now() - tempoInicio) / 1000); 
+                    }
+
+                    if (n3State === "DIALOGO") {
+                        btnSkipHover = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                        btnSpaceSkipHover = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                        if (btnSkipHover || btnSpaceSkipHover) cursorPointer = true;
+                    } 
+                    else if (n3State === "JOGAR") {
+                        if (n3FeedbackTimer > 0) {
+                            n3FeedbackTimer--;
+                        } else {
+                            let n3BarW = 300;
+                            n3CursorX += n3CursorSpeed * n3CursorDir;
+                            if (n3CursorX >= n3BarW || n3CursorX <= 0) {
+                                n3CursorDir *= -1;
+                            }
+                        }
+                    }
+                    else if (n3State === "GENIO_APARECE") {
+                        n3GenioAlpha += 0.005; 
+                        if (n3GenioAlpha >= 1) {
+                            n3GenioAlpha = 1;
+                            n3State = "GENIO_FALA";
+                        }
+                    }
+                    else if (n3State === "GENIO_FALA") {
+                        btnSkipHover = (mouseX >= btnSkipX && mouseX <= btnSkipX + btnSkipW && mouseY >= btnSkipY && mouseY <= btnSkipY + btnSkipH);
+                        btnSpaceSkipHover = (mouseX >= btnSpaceSkipX && mouseX <= btnSpaceSkipX + btnSpaceSkipW && mouseY >= btnSpaceSkipY && mouseY <= btnSpaceSkipY + btnSpaceSkipH);
+                        if (btnSkipHover || btnSpaceSkipHover) cursorPointer = true;
+                    }
+                    else if (n3State === "MAGIA_PUFF") {
+                        n3PuffTimer++;
+                        if (n3PuffTimer > 9) { 
+                            n3PuffTimer = 0;
+                            n3PuffFrame++;
+                            if (n3PuffFrame >= 4) {
+                                n3PuffFrame = 3;
+                                n3State = "SAPO_FINAL";
+                                tocarSom(sndSapo); // SOM DE SAPO AO TRANSFORMAR
+                                setTimeout(() => {
+                                    nivel3Completo = true;
+                                    showNivel3FimUI = true;
+                                    tempoAcumulado = tempoDecorrido; 
+                                    guardarScore(); // AQUI É O ÚNICO SITIO ONDE É GUARDADO!
+
+                                    // AQUI: Parar música de fundo e tocar a música final (apenas se música geral estiver ligada)
+                                    bgMusic.pause();
+                                    if (musicaOn) {
+                                        sndCaliphFrog.volume = 0.4; // MÚSICA DA VITÓRIA (SAPO) REDUZIDA
+                                        sndCaliphFrog.currentTime = 0;
+                                        sndCaliphFrog.play().catch(e => {});
+                                    }
+
+                                }, 3000); 
+                            }
+                        }
+                    }
+                } 
+                else if (isPaused) {
+                    if (mouseX >= pPosMusicaX && mouseX <= pPosMusicaX + btnAudioW && mouseY >= pPosMusicaY && mouseY <= pPosMusicaY + btnAudioH) { musicaOn = !musicaOn; if (musicaOn) bgMusic.play(); else bgMusic.pause(); }
+                    else if (mouseX >= pPosEfeitosX && mouseX <= pPosEfeitosX + btnAudioW && mouseY >= pPosEfeitosY && mouseY <= pPosEfeitosY + btnAudioH) { efeitosOn = !efeitosOn; }
+                    else if (mouseX >= pPosExitX && mouseX <= pPosExitX + btnExitW && mouseY >= pPosExitY && mouseY <= pPosExitY + btnExitH) { isPaused = false; targetGameState = "MENU"; isTransitioning = true; transitionPhase = 1; }
+                    else if (mouseX < ppX || mouseX > ppX + ppW || mouseY < ppY || mouseY > ppY + ppH) { isPaused = false; tempoInicio += (Date.now() - tempoPausaStart); }
+                }
+            }
+
+            canvas.style.cursor = cursorPointer ? 'pointer' : 'default';
+        }
+
+        function draw(ctx) {
+            if (gameState === "MENU") {
+                if (introLoaded) { const scale = Math.min(GAME_WIDTH / introImage.width, GAME_HEIGHT / introImage.height); const newWidth = introImage.width * scale; const newHeight = introImage.height * scale; const x = (GAME_WIDTH - newWidth) / 2; const y = (GAME_HEIGHT - newHeight) / 2; ctx.drawImage(introImage, x, y, newWidth, newHeight); }
+                botoes.forEach(botao => { if (!botao.carregado) return; ctx.save(); if (botao.id !== "lider" && botao.id !== "ajuda") { ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = 8; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3; } let drawX = botao.x, drawY = botao.y, drawW = botao.w, drawH = botao.h; if (botao.hover) { const esA = 1.08; drawW = botao.w * esA; drawH = botao.h * esA; drawX = botao.x - (drawW - botao.w) / 2; drawY = botao.y - (drawH - botao.h) / 2; if (botao.id !== "lider" && botao.id !== "ajuda") { ctx.shadowBlur = 12; ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 5; } } ctx.drawImage(botao.img, drawX, drawY, drawW, drawH); ctx.restore(); });
+                if (definicoesAbertas || creditosAbertos || lideresAbertos || ajudaAberta || nomeAberto) { ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+                if (definicoesAbertas && placaLoaded) { desenharPlaca(placaDefinicoes, pX, pY, pW, pH); ctx.fillStyle = "black"; ctx.font = "bold 18px Georgia"; ctx.textAlign = "center"; ctx.fillText("Música", posMusicaX + (btnAudioW / 2), posMusicaY - 15); ctx.fillText("Sons", posEfeitosX + (btnAudioW / 2), posEfeitosY - 15); let imgM = musicaOn ? imgAudioOn : imgAudioOff; if (imgM.complete && imgM.naturalHeight !== 0) ctx.drawImage(imgM, posMusicaX, posMusicaY, btnAudioW, btnAudioH); let imgE = efeitosOn ? imgAudioOn : imgAudioOff; if (imgE.complete && imgE.naturalHeight !== 0) ctx.drawImage(imgE, posEfeitosX, posEfeitosY, btnAudioW, btnAudioH); }
+                if (creditosAbertos && placaCreditosLoaded) desenharPlaca(placaCreditos, cX, cY, cW, cH);
+                if (ajudaAberta && placaAjudaLoaded) desenharPlaca(placaAjuda, aX, aY, aW, aH);
+                if (lideresAbertos && placaLideresLoaded) desenharPlaca(placaLideres, lX, lY, lW, lH);
+                if (nomeAberto && placaNomeLoaded) {
+                    desenharPlaca(placaNome, nX, nY, nW, nH); const imgJogar = botoes.find(b => b.id === "jogar").img;
+                    if (imgJogar.complete) { ctx.save(); let dJpX = jpX, dJpY = jpY, dJpW = jpW, dJpH = jpH; ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = 5; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2; if (btnJogarPequenoHover) { const scalePequeno = 1.05; dJpW = jpW * scalePequeno; dJpH = jpH * scalePequeno; dJpX = jpX - (dJpW - jpW) / 2; dJpY = jpY - (dJpH - jpH) / 2; ctx.shadowBlur = 8; } ctx.drawImage(imgJogar, dJpX, dJpY, dJpW, dJpH); ctx.restore(); }
+                }
+
+            }
+            else if (gameState === "CUTSCENE1") {
+                if (bgCorredor.complete && bgCorredor.naturalHeight !== 0) { ctx.drawImage(bgCorredor, 0, 0, GAME_WIDTH, GAME_HEIGHT); } else { ctx.fillStyle = "gray"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+                let currentDialogo = dialogos1[indexDialogo]; let quemFala = currentDialogo.orador; let texto = currentDialogo.texto;
+                let baseAnchorY = GAME_HEIGHT + 20;
+                let anchorIzX = 170; let izH = 260; let imgToDrawIz;
+                if (quemFala === "IZ") { imgToDrawIz = (talkAnimationFrame === 0) ? imgIzFala1 : imgIzFala2; } else { imgToDrawIz = imgIzCalado; }
+                if (imgToDrawIz.complete && imgToDrawIz.naturalHeight !== 0) { let ratio = izH / imgToDrawIz.naturalHeight; let izW = imgToDrawIz.naturalWidth * ratio; let izX = anchorIzX - (izW / 2); let izY = baseAnchorY - izH; ctx.drawImage(imgToDrawIz, izX, izY, izW, izH); if (quemFala === "IZ") { drawSpeechBubble(ctx, texto, izX - 40, izY, 280); } }
+                let anchorLaratX = GAME_WIDTH - 170; let larH = 250; let imgToDrawLarat;
+                if (quemFala === "LARAT") { imgToDrawLarat = (talkAnimationFrame === 0) ? imgLaratFala1 : imgLaratFala2; } else { imgToDrawLarat = imgLaratCalado; }
+                if (imgToDrawLarat.complete && imgToDrawLarat.naturalHeight !== 0) { let ratio = larH / imgToDrawLarat.naturalHeight; let larW = imgToDrawLarat.naturalWidth * ratio; let larX = anchorLaratX - (larW / 2); let larY = baseAnchorY - larH; ctx.drawImage(imgToDrawLarat, larX, larY, larW, larH); if (quemFala === "LARAT") { drawSpeechBubble(ctx, texto, larX - 80, larY, 280); } }
+                
+                if (imgBtnRight.complete) { ctx.save(); let dx = btnSkipX, dy = btnSkipY, dw = btnSkipW, dh = btnSkipH; if (btnSkipHover) { dw *= 1.1; dh *= 1.1; dx -= (dw - btnSkipW)/2; dy -= (dh - btnSkipH)/2; } ctx.drawImage(imgBtnRight, dx, dy, dw, dh); ctx.restore(); }
+                if (imgBtnSpace.complete) { ctx.save(); let dxS = btnSpaceSkipX, dyS = btnSpaceSkipY, dwS = btnSpaceSkipW, dhS = btnSpaceSkipH; if (btnSpaceSkipHover) { dwS *= 1.1; dhS *= 1.1; dxS -= (dwS - btnSpaceSkipW)/2; dyS -= (dhS - btnSpaceSkipH)/2; } ctx.drawImage(imgBtnSpace, dxS, dyS, dwS, dhS); ctx.restore(); }
+            }
+            else if (gameState === "CUTSCENE2") {
+                let imgToDraw = (cutscene2Index === 0) ? imgCut1 : imgCut2;
+                if (imgToDraw.complete && imgToDraw.naturalHeight !== 0) {
+                    const scale = Math.max(GAME_WIDTH / imgToDraw.naturalWidth, GAME_HEIGHT / imgToDraw.naturalHeight);
+                    const newWidth = imgToDraw.naturalWidth * scale; const newHeight = imgToDraw.naturalHeight * scale;
+                    const imgX = (GAME_WIDTH - newWidth) / 2; const imgY = (GAME_HEIGHT - newHeight) / 2;
+                    ctx.drawImage(imgToDraw, imgX, imgY, newWidth, newHeight);
+                } else { ctx.fillStyle = "black"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+                
+                if (imgBtnRight.complete) { ctx.save(); let dx = btnSkipX, dy = btnSkipY, dw = btnSkipW, dh = btnSkipH; if (btnSkipHover) { dw *= 1.1; dh *= 1.1; dx -= (dw - btnSkipW)/2; dy -= (dh - btnSkipH)/2; } ctx.drawImage(imgBtnRight, dx, dy, dw, dh); ctx.restore(); }
+                if (imgBtnSpace.complete) { ctx.save(); let dxS = btnSpaceSkipX, dyS = btnSpaceSkipY, dwS = btnSpaceSkipW, dhS = btnSpaceSkipH; if (btnSpaceSkipHover) { dwS *= 1.1; dhS *= 1.1; dxS -= (dwS - btnSpaceSkipW)/2; dyS -= (dhS - btnSpaceSkipH)/2; } ctx.drawImage(imgBtnSpace, dxS, dyS, dwS, dhS); ctx.restore(); }
+            }
+            else if (gameState === "CUTSCENE3") {
+                if (bgNivel1Loaded) {
+                    const zoom = 1.3; const scaleBg = GAME_HEIGHT / bgNivel1.height; const newW = bgNivel1.width * scaleBg * zoom; const newH = GAME_HEIGHT * zoom;
+                    ctx.drawImage(bgNivel1, 0, GAME_HEIGHT - newH, newW, newH);
+                } else { ctx.fillStyle = "skyblue"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+
+                if (!cutscene3IzFinished && imgIzCorrer.complete && imgIzCorrer.naturalHeight !== 0) {
+                    let pW = (1492 / 7) * 0.35; let pH = 325 * 0.35; let frameW = 1492 / 7; let corteX = cutscene3FrameIz * frameW;
+                    ctx.drawImage(imgIzCorrer, corteX, 0, frameW, 325, cutscene3IzX, chaoY - pH, pW, pH);
+                }
+                if (cutscene3IzFinished && (Date.now() - cutscene3DelayTimer >= 1500) && imgCameloSo.complete && imgCameloSo.naturalHeight !== 0) {
+                    let cW = (722 / 4) * 0.85; let cH = 144 * 0.85; let frameW = 722 / 4; let corteX = cutscene3FrameCamelo * frameW;
+                    ctx.drawImage(imgCameloSo, corteX, 0, frameW, 144, cutscene3CameloX, chaoY - cH, cW, cH);
+                }
+                if (imgBtnRight.complete) { ctx.save(); let dx = btnSkipX, dy = btnSkipY, dw = btnSkipW, dh = btnSkipH; if (btnSkipHover) { dw *= 1.1; dh *= 1.1; dx -= (dw - btnSkipW)/2; dy -= (dh - btnSkipH)/2; } ctx.drawImage(imgBtnRight, dx, dy, dw, dh); ctx.restore(); }
+                if (imgBtnSpace.complete) { ctx.save(); let dxS = btnSpaceSkipX, dyS = btnSpaceSkipY, dwS = btnSpaceSkipW, dhS = btnSpaceSkipH; if (btnSpaceSkipHover) { dwS *= 1.1; dhS *= 1.1; dxS -= (dwS - btnSpaceSkipW)/2; dyS -= (dhS - btnSpaceSkipH)/2; } ctx.drawImage(imgBtnSpace, dxS, dyS, dwS, dhS); ctx.restore(); }
+            }
+            else if (gameState === "NIVEL1") {
+                if (bgNivel1Loaded) { const scaleBg = GAME_HEIGHT / bgNivel1.height; const larguraRealBg = bgNivel1.width * scaleBg; ctx.drawImage(bgNivel1, bgX, 0, larguraRealBg, GAME_HEIGHT); } else { ctx.fillStyle = "skyblue"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+                tamarasNivel.forEach(t => { let tamaraScreenX = t.x + bgX; if (tamaraScreenX + t.w > 0 && tamaraScreenX < GAME_WIDTH) { if (imgTamara.complete && imgTamara.naturalHeight !== 0) { ctx.drawImage(imgTamara, tamaraScreenX, t.y, t.w, t.h); } else { ctx.fillStyle = "brown"; ctx.fillRect(tamaraScreenX, t.y, t.w, t.h); } } });
+                moedasNivel.forEach(m => { let moedaScreenX = m.x + bgX; if (moedaScreenX + m.w > 0 && moedaScreenX < GAME_WIDTH) { if (imgMoedaAnim.complete && imgMoedaAnim.naturalHeight !== 0) { let frameW = M_ANIM_SHEET_W / M_ANIM_FRAMES; let corteX = frameMoeda * frameW; ctx.drawImage( imgMoedaAnim, corteX, 0, frameW, M_ANIM_SHEET_H, moedaScreenX, m.y, m.w, m.h ); } else { ctx.fillStyle = "gold"; ctx.beginPath(); ctx.arc(moedaScreenX + m.w / 2, m.y + m.h / 2, m.w / 2, 0, Math.PI * 2); ctx.fill(); } } });
+                guardas.forEach(guarda => { let guardaScreenX = guarda.x + bgX; if (guardaScreenX + guarda.w > 0 && guardaScreenX < GAME_WIDTH) { ctx.save(); if (guarda.derrotado) { if (imgGuardaDerrota.complete && imgGuardaDerrota.naturalHeight !== 0) { ctx.drawImage(imgGuardaDerrota, guardaScreenX, guarda.y, guarda.w, guarda.h); } else { ctx.fillStyle = "gray"; ctx.fillRect(guardaScreenX, guarda.y, guarda.w, guarda.h); } } else { if (imgGuarda.complete && imgGuarda.naturalHeight !== 0) { let frameW = G_RUN_SHEET_W / G_RUN_FRAMES; let corteX = guarda.frameAtual * frameW; if (guarda.viradoParaEsquerda) { ctx.translate(guardaScreenX + guarda.w, guarda.y); ctx.scale(-1, 1); ctx.drawImage(imgGuarda, corteX, 0, frameW, G_RUN_SHEET_H, 0, 0, guarda.w, guarda.h); } else { ctx.drawImage(imgGuarda, corteX, 0, frameW, G_RUN_SHEET_H, guardaScreenX, guarda.y, guarda.w, guarda.h); } } else { ctx.fillStyle = "red"; ctx.fillRect(guardaScreenX, guarda.y, guarda.w, guarda.h); } } ctx.restore(); } });
+                catos.forEach(cato => { let catoScreenX = cato.x + bgX; if (catoScreenX + cato.w > 0 && catoScreenX < GAME_WIDTH) { if (imgCato.complete && imgCato.naturalHeight !== 0) { ctx.drawImage(imgCato, catoScreenX, cato.y, cato.w, cato.h); } else { ctx.fillStyle = "green"; ctx.fillRect(catoScreenX, cato.y, cato.w, cato.h); } } });
+
+                ctx.save();
+                if (invulneravel && Math.floor(Date.now() / 100) % 2 === 0 && !isGameOver) { ctx.globalAlpha = 0.5; }
+
+                let currentLargura = getPlayerLargura();
+                if (player.viradoParaEsquerda) { ctx.translate(player.x + currentLargura, player.y); ctx.scale(-1, 1); } else { ctx.translate(player.x, player.y); }
+
+                if (isGameOver) { if (cameloMorto.complete && cameloMorto.naturalHeight !== 0) { let mWidth = player.larguraMorto; let mHeight = mWidth * (cameloMorto.height / cameloMorto.width); let offsetY = player.alturaDesenho - mHeight; ctx.drawImage(cameloMorto, 0, offsetY, mWidth, mHeight); } }
+                else if (!player.noChao) { if (cameloSalto.complete) { ctx.drawImage(cameloSalto, 0, 0, currentLargura, player.alturaDesenho); } }
+                else if ((teclas.left || teclas.right || player.entrando) && !isPaused) { if (cameloCorrida.complete) { const corteX = (player.frameAtual * player.larguraFrameOriginal) + player.sxAdj; ctx.drawImage( cameloCorrida, corteX, 0, player.frameWidthAjustado, player.alturaFrameOriginal, 0, 0, currentLargura, player.alturaDesenho ); } }
+                else { if (cameloParado.complete) { ctx.drawImage(cameloParado, 0, 0, currentLargura, player.alturaDesenho); } }
+
+                ctx.restore(); ctx.globalAlpha = 1.0; ctx.save(); ctx.font = "bold 24px Georgia"; ctx.textAlign = "left";
+
+                let drawHUDText = (text, x, y) => { ctx.lineWidth = 4; ctx.strokeStyle = "black"; ctx.strokeText(text, x, y); ctx.fillStyle = "white"; ctx.fillText(text, x, y); };
+                let imgY = 15; let txtY = 40;
+
+                if (imgTamara.complete && imgTamara.naturalHeight !== 0) { ctx.drawImage(imgTamara, GAME_WIDTH / 2 - 200, imgY, 30, 30); } drawHUDText("x " + vidas, GAME_WIDTH / 2 - 160, txtY);
+                if (imgMoeda.complete && imgMoeda.naturalHeight !== 0) { ctx.drawImage(imgMoeda, GAME_WIDTH / 2 - 80, imgY, 30, 30); } drawHUDText("x " + moedas, GAME_WIDTH / 2 - 40, txtY);
+                let min = Math.floor(tempoDecorrido / 60); let seg = tempoDecorrido % 60; let tempoFormatado = min > 0 ? "T: " + min + "m " + (seg < 10 ? "0" : "") + seg + "s" : "T: " + seg + "s"; drawHUDText(tempoFormatado, GAME_WIDTH / 2 + 60, txtY);
+                ctx.restore();
+
+                if (nivel1Completo) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                    if (placaGeralLoaded) {
+                        desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 26px Georgia"; ctx.textAlign = "center"; ctx.fillText("Nível 1 Concluído!", pgX + (pgW / 2), pgY + (pgH * 0.25));
+                        let statsY = pgY + (pgH * 0.45); let startX = pgX + (pgW / 2) - 80; ctx.font = "bold 22px Georgia"; ctx.textAlign = "left";
+                        if (imgTamara.complete) ctx.drawImage(imgTamara, startX, statsY - 20, 25, 25); ctx.fillText("x " + vidas, startX + 35, statsY);
+                        if (imgMoeda.complete) ctx.drawImage(imgMoeda, startX + 90, statsY - 20, 25, 25); ctx.fillText("x " + moedas, startX + 125, statsY);
+                        ctx.textAlign = "center"; ctx.fillText(tempoFormatado, pgX + (pgW / 2), statsY + 45);
+                        if (imgBtnRight.complete && imgBtnRight.naturalHeight !== 0) { ctx.save(); let brW = 40, brH = 40; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.75) - (brH / 2); if (btnNextHover) { brW *= 1.1; brH *= 1.1; brX -= (brW - 40) / 2; brY -= (brH - 40) / 2; } ctx.drawImage(imgBtnRight, brX, brY, brW, brH); ctx.restore(); }
+                    }
+                }
+                else if (isGameOver) {
+                    if (showGameOverUI) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                        if (placaGeralLoaded) {
+                            desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 26px Georgia"; ctx.textAlign = "center";
+                            let linha1 = "Chegaste ao fim"; let linha2 = "da viagem!"; let yTextoBase = pgY + (pgH * 0.35); let alturaLinha = 35; ctx.fillText(linha1, pgX + (pgW / 2), yTextoBase); ctx.fillText(linha2, pgX + (pgW / 2), yTextoBase + alturaLinha);
+                            if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.save(); let dEw = pgBtnExitW, dEh = pgBtnExitH, dEx = pgPosExitX, dEy = pgPosExitY; if (btnExitHover) { dEw *= 1.1; dEh *= 1.1; dEx -= (dEw - pgBtnExitW) / 2; dEy -= (dEh - pgBtnExitH) / 2; } ctx.drawImage(imgBtnExit, dEx, dEy, dEw, dEh); ctx.restore(); }
+                        }
+                    }
+                }
+                else {
+                    if (imgBtnPausa.complete && imgBtnPausa.naturalHeight !== 0 && !player.entrando) { ctx.save(); let dPw = btnPausaW, dPh = btnPausaH, dPx = btnPausaX, dPy = btnPausaY; if (btnPausaHover && !isPaused) { dPw *= 1.1; dPh *= 1.1; dPx -= (dPw - btnPausaW) / 2; dPy -= (dPh - btnPausaH) / 2; } ctx.drawImage(imgBtnPausa, dPx, dPy, dPw, dPh); ctx.restore(); }
+                    if (isPaused) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                        if (placaPausaLoaded) {
+                            desenharPlaca(placaPausa, ppX, ppY, ppW, ppH); ctx.fillStyle = "black"; ctx.font = "bold 18px Georgia"; ctx.textAlign = "center"; ctx.fillText("Música", pPosMusicaX + (btnAudioW / 2), pPosMusicaY - 7); ctx.fillText("Sons", pPosEfeitosX + (btnAudioW / 2), pPosEfeitosY - 7);
+                            let imgM = musicaOn ? imgAudioOn : imgAudioOff; if (imgM.complete && imgM.naturalHeight !== 0) ctx.drawImage(imgM, pPosMusicaX, pPosMusicaY, btnAudioW, btnAudioH);
+                            let imgE = efeitosOn ? imgAudioOn : imgAudioOff; if (imgE.complete && imgE.naturalHeight !== 0) ctx.drawImage(imgE, pPosEfeitosX, pPosEfeitosY, btnAudioW, btnAudioH);
+                            if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.drawImage(imgBtnExit, pPosExitX, pPosExitY, btnExitW, btnExitH); }
+                        }
+                    }
+                }
+            }
+            else if (gameState === "NIVEL2") {
+                if (bgNivel2.complete) { ctx.drawImage(bgNivel2, n2BgX, n2BgY, 3236, 790); } else { ctx.fillStyle = "darkblue"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+
+                let drawOffsetY = 0; const maxBgY = -(790 - GAME_HEIGHT);
+                if (n2State === "FALLING" || n2State === "LANDED") { drawOffsetY = n2BgY - maxBgY; }
+
+                n2Inimigos.forEach(inimigo => {
+                    let inimigoScreenX = inimigo.x + n2BgX;
+                    if (inimigoScreenX + inimigo.w > 0 && inimigoScreenX < GAME_WIDTH) {
+                        ctx.save(); let drawY = inimigo.y + drawOffsetY;
+                        if (inimigo.estado === "VIVO") {
+                            if (inimigo.tipo === 'cobra' && imgCobra.complete) {
+                                let frameW = 896 / 4; let corteX = inimigo.frameAtual * frameW;
+                                if (!inimigo.viradoParaEsquerda) { ctx.translate(inimigoScreenX + inimigo.w, drawY); ctx.scale(-1, 1); ctx.drawImage(imgCobra, corteX, 0, frameW, 99, 0, 0, inimigo.w, inimigo.h); } 
+                                else { ctx.drawImage(imgCobra, corteX, 0, frameW, 99, inimigoScreenX, drawY, inimigo.w, inimigo.h); }
+                            } else if (inimigo.tipo === 'rato' && imgRato.complete) {
+                                let frameW = 862 / 6; let corteX = inimigo.frameAtual * frameW;
+                                if (!inimigo.viradoParaEsquerda) { ctx.translate(inimigoScreenX + inimigo.w, drawY); ctx.scale(-1, 1); ctx.drawImage(imgRato, corteX, 0, frameW, 119, 0, 0, inimigo.w, inimigo.h); } 
+                                else { ctx.drawImage(imgRato, corteX, 0, frameW, 119, inimigoScreenX, drawY, inimigo.w, inimigo.h); }
+                            } else if (inimigo.tipo === 'esqueleto' && imgEsqueleto.complete) {
+                                if (!inimigo.viradoParaEsquerda) { ctx.translate(inimigoScreenX + inimigo.w, drawY); ctx.scale(-1, 1); ctx.drawImage(imgEsqueleto, 0, 0, 332, 365, 0, 0, inimigo.w, inimigo.h); } 
+                                else { ctx.drawImage(imgEsqueleto, 0, 0, 332, 365, inimigoScreenX, drawY, inimigo.w, inimigo.h); }
+                            } else { ctx.fillStyle = "red"; ctx.fillRect(inimigoScreenX, drawY, inimigo.w, inimigo.h); }
+                        } else if (inimigo.estado === "MORTO") {
+                            if (imgPuff.complete) { 
+                                let frameW = 2634 / 4; 
+                                let trim = 4;
+                                let corteX = (inimigo.frameAtual * frameW) + trim; 
+                                let drawW = frameW - (trim * 2);
+                                ctx.drawImage(imgPuff, corteX, 0, drawW, 590, inimigoScreenX, drawY, inimigo.w, inimigo.h); 
+                            }
+                        }
+                        ctx.restore();
+                    }
+                });
+
+                n2Magias.forEach(m => {
+                    if (imgBolaMagica.complete) { let mw = 151 * 0.4; let mh = 92 * 0.4; ctx.drawImage(imgBolaMagica, m.x, m.y, mw, mh); } 
+                    else { ctx.fillStyle = "cyan"; ctx.beginPath(); ctx.arc(m.x + 10, m.y + 10, 15, 0, Math.PI * 2); ctx.fill(); }
+                }); 
+                
+                n2Tamaras.forEach(t => {
+                    let tamaraScreenX = t.x + n2BgX;
+                    if (tamaraScreenX + t.w > 0 && tamaraScreenX < GAME_WIDTH) {
+                        if (imgTamara.complete && imgTamara.naturalHeight !== 0) { ctx.drawImage(imgTamara, tamaraScreenX, t.y + drawOffsetY, t.w, t.h); } 
+                        else { ctx.fillStyle = "brown"; ctx.fillRect(tamaraScreenX, t.y + drawOffsetY, t.w, t.h); }
+                    }
+                });
+
+                n2Moedas.forEach(m => {
+                    let moedaScreenX = m.x + n2BgX;
+                    if (moedaScreenX + m.w > 0 && moedaScreenX < GAME_WIDTH) {
+                        if (imgMoedaAnim.complete && imgMoedaAnim.naturalHeight !== 0) {
+                            let frameW = M_ANIM_SHEET_W / M_ANIM_FRAMES; let corteX = frameMoeda * frameW;
+                            ctx.drawImage( imgMoedaAnim, corteX, 0, frameW, M_ANIM_SHEET_H, moedaScreenX, m.y + drawOffsetY, m.w, m.h );
+                        } else { ctx.fillStyle = "gold"; ctx.beginPath(); ctx.arc(moedaScreenX + m.w / 2, m.y + drawOffsetY + m.h / 2, m.w / 2, 0, Math.PI * 2); ctx.fill(); }
+                    }
+                });
+
+                ctx.save();
+                if (invulneravel && Math.floor(Date.now() / 100) % 2 === 0 && !isGameOver) { ctx.globalAlpha = 0.5; }
+
+                let pImg = null, pW = 0, pH = 0; let éAnimacaoSprite = false;
+
+                if (n2State === "FALLING") { pImg = imgIzQueda; pW = 252 * 0.30; pH = 309 * 0.30; } 
+                else if (n2State === "LANDED") { pImg = imgIzChao; pW = 313 * 0.35; pH = 213 * 0.35; } 
+                else if (n2State === "PLAYING") {
+                    if (n2LancarTimer > 0) { pImg = imgIzLancar; pW = 248 * 0.44; pH = 319 * 0.36; } 
+                    else if (teclas.left || teclas.right || nivel2Completo) { pImg = imgIzCorrer; pW = (1492 / 7) * 0.35; pH = 325 * 0.35; éAnimacaoSprite = true; } 
+                    else { pImg = imgIzEsfregar; pW = 304 * 0.25; pH = 442 * 0.25; }
+                }
+
+                let drawYPlayer = player.y; 
+                if (n2State === "PLAYING" || n2State === "LANDED") { drawYPlayer = N2_FLOOR_Y - pH; }
+
+                if (isGameOver) { pImg = imgIzChao; pW = 313 * 0.35; pH = 213 * 0.35; drawYPlayer = N2_FLOOR_Y - pH; éAnimacaoSprite = false; }
+
+                if (pImg && pImg.complete) {
+                    if (!n2ViradoEsquerda) {
+                        ctx.translate(player.x + pW, drawYPlayer); ctx.scale(-1, 1);
+                        if (éAnimacaoSprite && !isGameOver) { let frameW = 1492 / 7; let corteX = player.frameAtual * frameW; ctx.drawImage(pImg, corteX, 0, frameW, 325, 0, 0, pW, pH); } 
+                        else { ctx.drawImage(pImg, 0, 0, pW, pH); }
+                    } else {
+                        if (éAnimacaoSprite && !isGameOver) { let frameW = 1492 / 7; let corteX = player.frameAtual * frameW; ctx.drawImage(pImg, corteX, 0, frameW, 325, player.x, drawYPlayer, pW, pH); } 
+                        else { ctx.drawImage(pImg, player.x, drawYPlayer, pW, pH); }
+                    }
+                }
+                ctx.restore(); ctx.globalAlpha = 1.0;
+
+                if (isGameOver) {
+                    if (showGameOverUI) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                        if (placaGeralLoaded) {
+                            desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 26px Georgia"; ctx.textAlign = "center";
+                            let linha1 = "Chegaste ao fim"; let linha2 = "da viagem!"; let yTextoBase = pgY + (pgH * 0.35); let alturaLinha = 35; ctx.fillText(linha1, pgX + (pgW / 2), yTextoBase); ctx.fillText(linha2, pgX + (pgW / 2), yTextoBase + alturaLinha);
+                            if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.save(); let dEw = pgBtnExitW, dEh = pgBtnExitH, dEx = pgPosExitX, dEy = pgPosExitY; if (btnExitHover) { dEw *= 1.1; dEh *= 1.1; dEx -= (dEw - pgBtnExitW) / 2; dEy -= (dEh - pgBtnExitH) / 2; } ctx.drawImage(imgBtnExit, dEx, dEy, dEw, dEh); ctx.restore(); }
+                        }
+                    }
+                } else if (nivel2Completo && showNivel2FimUI) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                    if (placaGeralLoaded) {
+                        desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 26px Georgia"; ctx.textAlign = "center"; 
+                        ctx.fillText("Nível 2 Concluído!", pgX + (pgW / 2), pgY + (pgH * 0.25));
+                        let statsY = pgY + (pgH * 0.45); let startX = pgX + (pgW / 2) - 80; ctx.font = "bold 22px Georgia"; ctx.textAlign = "left";
+                        if (imgTamara.complete) ctx.drawImage(imgTamara, startX, statsY - 20, 25, 25); ctx.fillText("x " + vidas, startX + 35, statsY);
+                        if (imgMoeda.complete) ctx.drawImage(imgMoeda, startX + 90, statsY - 20, 25, 25); ctx.fillText("x " + moedas, startX + 125, statsY);
+                        ctx.textAlign = "center"; let min = Math.floor(tempoDecorrido / 60); let seg = tempoDecorrido % 60; let tempoFormatado = min > 0 ? "T: " + min + "m " + (seg < 10 ? "0" : "") + seg + "s" : "T: " + seg + "s";
+                        ctx.fillText(tempoFormatado, pgX + (pgW / 2), statsY + 45);
+                        if (imgBtnRight.complete && imgBtnRight.naturalHeight !== 0) {
+                            ctx.save(); let brW = 40, brH = 40; let brX = pgX + (pgW / 2) - (brW / 2); let brY = pgY + (pgH * 0.75) - (brH / 2);
+                            if (btnNextHover) { brW *= 1.1; brH *= 1.1; brX -= (brW - 40) / 2; brY -= (brH - 40) / 2; }
+                            ctx.drawImage(imgBtnRight, brX, brY, brW, brH); ctx.restore();
+                        }
+                    }
+                } else {
+                    ctx.save(); ctx.font = "bold 24px Georgia"; ctx.textAlign = "left";
+                    let drawHUDText = (text, x, y) => { ctx.lineWidth = 4; ctx.strokeStyle = "black"; ctx.strokeText(text, x, y); ctx.fillStyle = "white"; ctx.fillText(text, x, y); };
+                    if (imgTamara.complete && imgTamara.naturalHeight !== 0) { ctx.drawImage(imgTamara, GAME_WIDTH / 2 - 200, 15, 30, 30); } drawHUDText("x " + vidas, GAME_WIDTH / 2 - 160, 40);
+                    if (imgMoeda.complete && imgMoeda.naturalHeight !== 0) { ctx.drawImage(imgMoeda, GAME_WIDTH / 2 - 80, 15, 30, 30); } drawHUDText("x " + moedas, GAME_WIDTH / 2 - 40, 40);
+                    let min = Math.floor(tempoDecorrido / 60); let seg = tempoDecorrido % 60; let tempoFormatado = min > 0 ? "T: " + min + "m " + (seg < 10 ? "0" : "") + seg + "s" : "T: " + seg + "s"; 
+                    drawHUDText(tempoFormatado, GAME_WIDTH / 2 + 60, 40);
+                    ctx.restore();
+
+                    if (imgBtnPausa.complete && imgBtnPausa.naturalHeight !== 0) { ctx.save(); let dPw = btnPausaW, dPh = btnPausaH, dPx = btnPausaX, dPy = btnPausaY; if (btnPausaHover && !isPaused) { dPw *= 1.1; dPh *= 1.1; dPx -= (dPw - btnPausaW) / 2; dPy -= (dPh - btnPausaH) / 2; } ctx.drawImage(imgBtnPausa, dPx, dPy, dPw, dPh); ctx.restore(); }
+                    
+                    if (isPaused) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                        if (placaPausaLoaded) {
+                            desenharPlaca(placaPausa, ppX, ppY, ppW, ppH); ctx.fillStyle = "black"; ctx.font = "bold 18px Georgia"; ctx.textAlign = "center"; ctx.fillText("Música", pPosMusicaX + (btnAudioW / 2), pPosMusicaY - 7); ctx.fillText("Sons", pPosEfeitosX + (btnAudioW / 2), pPosEfeitosY - 7);
+                            let imgM = musicaOn ? imgAudioOn : imgAudioOff; if (imgM.complete && imgM.naturalHeight !== 0) ctx.drawImage(imgM, pPosMusicaX, pPosMusicaY, btnAudioW, btnAudioH);
+                            let imgE = efeitosOn ? imgAudioOn : imgAudioOff; if (imgE.complete && imgE.naturalHeight !== 0) ctx.drawImage(imgE, pPosEfeitosX, pPosEfeitosY, btnAudioW, btnAudioH);
+                            if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.drawImage(imgBtnExit, pPosExitX, pPosExitY, btnExitW, btnExitH); }
+                        }
+                    }
+                }
+            }
+            else if (gameState === "NIVEL3") {
+                if (bgNivel3Loaded) {
+                    let scaledW = 1408 * (GAME_HEIGHT / 768);
+                    ctx.drawImage(bgNivel3, bgX, 0, scaledW, GAME_HEIGHT);
+                } else {
+                    ctx.fillStyle = "purple"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                }
+
+                if (n3State !== "JOGAR" && n3State !== "SAPO_FINAL") {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.4)"; 
+                    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                }
+
+                let izScale = 1.0; 
+                let izW = 304 * izScale;
+                let izH = 442 * izScale;
+                let izX = -20; 
+                let izY = GAME_HEIGHT - izH + 130; 
+
+                if (n3State === "SAPO_FINAL") {
+                    if (imgSapo.complete && imgSapo.naturalHeight !== 0) {
+                        let sapoScale = 0.55;
+                        let sapoW = 240 * sapoScale;
+                        let sapoH = 279 * sapoScale;
+                        ctx.drawImage(imgSapo, izX + 25, GAME_HEIGHT - sapoH + 35, sapoW, sapoH);
+                    }
+                } else {
+                    if (imgIzEsfregar.complete && imgIzEsfregar.naturalHeight !== 0) {
+                        ctx.save();
+                        ctx.translate(izX + izW, izY);
+                        ctx.scale(-1, 1); 
+                        ctx.drawImage(imgIzEsfregar, 0, 0, izW, izH);
+                        ctx.restore(); 
+                    }
+                }
+
+                if (n3State === "MAGIA_PUFF" && imgPuff.complete) {
+                    let frameW = 2634 / 4; 
+                    let trim = 4; 
+                    let corteX = (n3PuffFrame * frameW) + trim;
+                    let drawW = frameW - (trim * 2);
+                    let pScale = 0.6;
+                    ctx.drawImage(imgPuff, corteX, 0, drawW, 590, izX - 30, izY - 30, drawW * pScale, 590 * pScale); 
+                }
+
+                let gX = 265; 
+                let gScale = 0.45; 
+                let gY = GAME_HEIGHT - (477 * gScale) - 80; 
+                
+                if (n3State === "GENIO_APARECE" && imgN3GenioSo.complete) {
+                    ctx.save();
+                    ctx.globalAlpha = n3GenioAlpha;
+                    ctx.drawImage(imgN3GenioSo, 0, 0, 207, 477, gX, gY, 207 * gScale, 477 * gScale);
+                    ctx.restore();
+                } 
+                else if ((n3State === "GENIO_FALA" || n3State === "MAGIA_PUFF" || n3State === "SAPO_FINAL") && imgN3GenioSo.complete) {
+                    ctx.drawImage(imgN3GenioSo, 0, 0, 207, 477, gX, gY, 207 * gScale, 477 * gScale);
+                }
+
+                if (n3State === "DIALOGO") {
+                    let texto = dialogos3[indexDialogo3].texto;
+                    drawSpeechBubble(ctx, texto, izX + izW - 90, izY + 60, 320); 
+
+                    if (imgBtnRight.complete) { ctx.save(); let dx = btnSkipX, dy = btnSkipY, dw = btnSkipW, dh = btnSkipH; if (btnSkipHover) { dw *= 1.1; dh *= 1.1; dx -= (dw - btnSkipW)/2; dy -= (dh - btnSkipH)/2; } ctx.drawImage(imgBtnRight, dx, dy, dw, dh); ctx.restore(); }
+                    if (imgBtnSpace.complete) { ctx.save(); let dxS = btnSpaceSkipX, dyS = btnSpaceSkipY, dwS = btnSpaceSkipW, dhS = btnSpaceSkipH; if (btnSpaceSkipHover) { dwS *= 1.1; dwS *= 1.1; dxS -= (dwS - btnSpaceSkipW)/2; dyS -= (dhS - btnSpaceSkipH)/2; } ctx.drawImage(imgBtnSpace, dxS, dyS, dwS, dhS); ctx.restore(); }
+                } 
+                else if (n3State === "GENIO_FALA") {
+                    drawSpeechBubble(ctx, "Às suas ordens, oh Mestre!", gX - 10, gY + 20, 250);
+
+                    if (imgBtnRight.complete) { ctx.save(); let dx = btnSkipX, dy = btnSkipY, dw = btnSkipW, dh = btnSkipH; if (btnSkipHover) { dw *= 1.1; dh *= 1.1; dx -= (dw - btnSkipW)/2; dy -= (dh - btnSkipH)/2; } ctx.drawImage(imgBtnRight, dx, dy, dw, dh); ctx.restore(); }
+                    if (imgBtnSpace.complete) { ctx.save(); let dxS = btnSpaceSkipX, dyS = btnSpaceSkipY, dwS = btnSpaceSkipW, dhS = btnSpaceSkipH; if (btnSpaceSkipHover) { dwS *= 1.1; dwS *= 1.1; dxS -= (dwS - btnSpaceSkipW)/2; dyS -= (dhS - btnSpaceSkipH)/2; } ctx.drawImage(imgBtnSpace, dxS, dyS, dwS, dhS); ctx.restore(); }
+                }
+                else if (n3State === "JOGAR" && !isPaused && !isGameOver) {
+                    let n3BarW = 300; 
+                    let n3BarH = 25; 
+                    let n3BarX = (GAME_WIDTH / 2) - (n3BarW / 2);
+                    let n3BarY = GAME_HEIGHT - 80;
+                    
+                    let n3TargetW = 45;
+                    let targetStart = n3BarW / 2 - n3TargetW / 2;
+                    let borderRadius = 12; 
+
+                    ctx.beginPath();
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    ctx.roundRect(n3BarX, n3BarY, n3BarW, n3BarH, borderRadius);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.fillStyle = "lime";
+                    ctx.roundRect(n3BarX + targetStart, n3BarY, n3TargetW, n3BarH, 0); 
+                    ctx.fill();
+
+                    ctx.fillStyle = "red";
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = "red";
+                    ctx.fillRect(n3BarX + n3CursorX - 2, n3BarY - 5, 4, n3BarH + 10);
+                    ctx.shadowBlur = 0; 
+
+                    ctx.save();
+                    ctx.font = "bold 16px Georgia"; 
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = "white"; 
+                    ctx.strokeStyle = "black"; 
+                    ctx.lineWidth = 3;
+                    let instr = "Carrega no ESPAÇO no centro! (Hits: " + n3Hits + "/3 | Erros: " + n3Misses + "/2)";
+                    ctx.strokeText(instr, GAME_WIDTH / 2, n3BarY - 15);
+                    ctx.fillText(instr, GAME_WIDTH / 2, n3BarY - 15);
+                    
+                    if (n3FeedbackTimer > 0) {
+                        ctx.font = "bold 28px Georgia";
+                        ctx.fillStyle = n3FeedbackColor;
+                        ctx.strokeText(n3FeedbackMsg, GAME_WIDTH / 2, n3BarY - 45);
+                        ctx.fillText(n3FeedbackMsg, GAME_WIDTH / 2, n3BarY - 45);
+                    }
+                    ctx.restore();
+                }
+
+                if (!nivel3Completo && !isGameOver) {
+                    ctx.save();
+                    ctx.font = "bold 24px Georgia"; ctx.textAlign = "left";
+                    let drawHUDText = (text, x, y) => { ctx.lineWidth = 4; ctx.strokeStyle = "black"; ctx.strokeText(text, x, y); ctx.fillStyle = "white"; ctx.fillText(text, x, y); };
+                    let imgY = 15; let txtY = 40;
+
+                    if (imgTamara.complete) ctx.drawImage(imgTamara, GAME_WIDTH / 2 - 200, imgY, 30, 30); drawHUDText("x " + vidas, GAME_WIDTH / 2 - 160, txtY);
+                    if (imgMoeda.complete) ctx.drawImage(imgMoeda, GAME_WIDTH / 2 - 80, imgY, 30, 30); drawHUDText("x " + moedas, GAME_WIDTH / 2 - 40, txtY);
+                    
+                    let min = Math.floor(tempoDecorrido / 60); let seg = tempoDecorrido % 60; 
+                    let tempoFormatado = min > 0 ? "T: " + min + "m " + (seg < 10 ? "0" : "") + seg + "s" : "T: " + seg + "s"; 
+                    drawHUDText(tempoFormatado, GAME_WIDTH / 2 + 60, txtY);
+                    ctx.restore();
+
+                    if (imgBtnPausa.complete) { ctx.save(); let dPw = btnPausaW, dPh = btnPausaH, dPx = btnPausaX, dPy = btnPausaY; if (btnPausaHover && !isPaused) { dPw *= 1.1; dPh *= 1.1; dPx -= (dPw - btnPausaW) / 2; dPy -= (dPh - btnPausaH) / 2; } ctx.drawImage(imgBtnPausa, dPx, dPy, dPw, dPh); ctx.restore(); }
+                }
+
+                if (isGameOver) {
+                    if (showGameOverUI) {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                        if (placaGeralLoaded) {
+                            desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 26px Georgia"; ctx.textAlign = "center";
+                            let linha1 = "Génio: Estou no"; let linha2 = "Oftalmologista!";  let linha3 = "Volte mais logo!"; let yTextoBase = pgY + (pgH * 0.35); let alturaLinha = 35; ctx.fillText(linha1, pgX + (pgW / 2), yTextoBase); ctx.fillText(linha2, pgX + (pgW / 2), yTextoBase + alturaLinha); ctx.fillText(linha3, pgX + (pgW / 2), yTextoBase + (alturaLinha * 2));
+                            if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.save(); let dEw = pgBtnExitW, dEh = pgBtnExitH, dEx = pgPosExitX, dEy = pgPosExitY; if (btnExitHover) { dEw *= 1.1; dEh *= 1.1; dEx -= (dEw - pgBtnExitW) / 2; dEy -= (dEh - pgBtnExitH) / 2; } ctx.drawImage(imgBtnExit, dEx, dEy, dEw, dEh); ctx.restore(); }
+                        }
+                    }
+                } 
+                else if (nivel3Completo && showNivel3FimUI) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                    if (placaGeralLoaded) {
+                        desenharPlaca(placaGeral, pgX, pgY, pgW, pgH); ctx.fillStyle = "black"; ctx.font = "bold 18px Georgia"; ctx.textAlign = "center"; 
+                        ctx.fillText("Quem tudo quer, tudo perde!", pgX + (pgW / 2), pgY + (pgH * 0.22));
+                        
+                        ctx.font = "italic 16px Georgia";
+                        ctx.fillText("Podes ficar com isto...", pgX + (pgW / 2), pgY + (pgH * 0.32));
+
+                        let statsY = pgY + (pgH * 0.48); let startX = pgX + (pgW / 2) - 80; ctx.font = "bold 22px Georgia"; ctx.textAlign = "left";
+                        if (imgTamara.complete) ctx.drawImage(imgTamara, startX, statsY - 20, 25, 25); ctx.fillText("x " + vidas, startX + 35, statsY);
+                        if (imgMoeda.complete) ctx.drawImage(imgMoeda, startX + 90, statsY - 20, 25, 25); ctx.fillText("x " + moedas, startX + 125, statsY);
+
+                        ctx.textAlign = "center"; let min = Math.floor(tempoDecorrido / 60); let seg = tempoDecorrido % 60; let tempoFormatado = min > 0 ? "T: " + min + "m " + (seg < 10 ? "0" : "") + seg + "s" : "T: " + seg + "s";
+                        
+                        ctx.fillText(tempoFormatado, pgX + (pgW / 2), statsY + 30);
+
+                        if (isNovoRecorde) {
+                            ctx.fillStyle = "red"; 
+                            ctx.font = "bold 22px Georgia";
+                            ctx.fillText("NOVO RECORDE!", pgX + (pgW / 2), statsY + 65);
+                        }
+
+                        if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.save(); let dEw = pgBtnExitW, dEh = pgBtnExitH, dEx = pgPosExitX, dEy = pgPosExitY; if (btnExitHover) { dEw *= 1.1; dEh *= 1.1; dEx -= (dEw - pgBtnExitW) / 2; dEy -= (dEh - pgBtnExitH) / 2; } ctx.drawImage(imgBtnExit, dEx, dEy, dEw, dEh); ctx.restore(); }
+                    }
+                } 
+                else if (isPaused) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                    if (placaPausaLoaded) {
+                        desenharPlaca(placaPausa, ppX, ppY, ppW, ppH); ctx.fillStyle = "black"; ctx.font = "bold 18px Georgia"; ctx.textAlign = "center"; ctx.fillText("Música", pPosMusicaX + (btnAudioW / 2), pPosMusicaY - 7); ctx.fillText("Sons", pPosEfeitosX + (btnAudioW / 2), pPosEfeitosY - 7);
+                        let imgM = musicaOn ? imgAudioOn : imgAudioOff; if (imgM.complete && imgM.naturalHeight !== 0) ctx.drawImage(imgM, pPosMusicaX, pPosMusicaY, btnAudioW, btnAudioH);
+                        let imgE = efeitosOn ? imgAudioOn : imgAudioOff; if (imgE.complete && imgE.naturalHeight !== 0) ctx.drawImage(imgE, pPosEfeitosX, pPosEfeitosY, btnAudioW, btnAudioH);
+                        if (imgBtnExit.complete && imgBtnExit.naturalHeight !== 0) { ctx.drawImage(imgBtnExit, pPosExitX, pPosExitY, btnExitW, btnExitH); }
+                    }
+                }
+            }
+
+            if (transitionAlpha > 0) { ctx.fillStyle = `rgba(0, 0, 0, ${transitionAlpha})`; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT); }
+        }
+
+        function desenharPlaca(img, x, y, w, h) { ctx.save(); ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3; ctx.drawImage(img, x, y, w, h); ctx.restore(); }
+        window.addEventListener('resize', () => { if (nomeAberto) gerirInputNome(); if (creditosAbertos) gerirCreditos(); if (ajudaAberta) gerirAjuda(); if (lideresAbertos) gerirLideres(); });
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
